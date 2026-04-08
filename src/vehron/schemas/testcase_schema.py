@@ -33,6 +33,9 @@ class SimulationSection(BaseModel):
     dt_s: float = Field(gt=0, default=0.1)
     max_duration_s: float = Field(gt=0, default=3600.0)
     stop_on_soc_min: bool = Field(default=True)
+    external_charging_power_kw: float = Field(ge=0, default=0.0)
+    external_charging_start_s: float = Field(ge=0, default=0.0)
+    external_charging_end_s: float = Field(ge=0, default=0.0)
 
 
 class OutputsSection(BaseModel):

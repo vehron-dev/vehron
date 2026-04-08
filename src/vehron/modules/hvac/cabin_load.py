@@ -8,9 +8,32 @@ from vehron.state import ModuleInputs, ModuleOutputs, SimState
 
 
 class CabinLoadModel(BaseModule):
+    RATE_DIVISOR: int = 100
+
     def initialize(self, dt: float) -> None:
         self._state = {"mode": "off"}
+        self._sum_t_ambient_k = 0.0
+        self._sum_t_cabin_k = 0.0
+        self._samples = 0
+        self._accumulated = {"t_ambient_k": 298.15, "t_cabin_k": 298.15}
         self.t = 0.0
+
+    def accumulate(self, sim_state: SimState) -> None:
+        self._sum_t_ambient_k += sim_state.t_ambient_k
+        self._sum_t_cabin_k += sim_state.t_cabin_k
+        self._samples += 1
+
+    def flush_accumulator(self) -> None:
+        if self._samples <= 0:
+            return
+        inv = 1.0 / self._samples
+        self._accumulated = {
+            "t_ambient_k": self._sum_t_ambient_k * inv,
+            "t_cabin_k": self._sum_t_cabin_k * inv,
+        }
+        self._sum_t_ambient_k = 0.0
+        self._sum_t_cabin_k = 0.0
+        self._samples = 0
 
     def step(self, sim_state: SimState, inputs: ModuleInputs, dt: float) -> ModuleOutputs:
         rated_power_w = float(self.params.get("rated_power_kw", 4.0)) * 1000.0
@@ -18,7 +41,9 @@ class CabinLoadModel(BaseModule):
         cop_cooling = float(self.params.get("cop_cooling", 2.5))
         cop_heating = float(self.params.get("cop_heating", 2.0))
 
-        delta_k = sim_state.t_ambient_k - setpoint_k
+        t_ambient_k = self._accumulated.get("t_ambient_k", sim_state.t_ambient_k)
+        t_cabin_k = self._accumulated.get("t_cabin_k", sim_state.t_cabin_k)
+        delta_k = t_ambient_k - setpoint_k
 
         if delta_k > 0.5:
             cooling_frac = min(delta_k / 15.0, 1.0)
@@ -35,7 +60,7 @@ class CabinLoadModel(BaseModule):
             mode = "off"
 
         cabin_tau_s = 600.0
-        t_cabin_next_k = sim_state.t_cabin_k + (setpoint_k - sim_state.t_cabin_k) * dt / cabin_tau_s
+        t_cabin_next_k = t_cabin_k + (setpoint_k - t_cabin_k) * dt / cabin_tau_s
 
         self._state = {"mode": mode}
         self.t += dt

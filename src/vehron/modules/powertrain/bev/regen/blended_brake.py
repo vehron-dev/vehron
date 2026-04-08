@@ -7,6 +7,8 @@ from vehron.state import ModuleInputs, ModuleOutputs, SimState
 
 
 class BlendedBrakeRegenModel(BaseModule):
+    RATE_DIVISOR: int = 1
+
     def initialize(self, dt: float) -> None:
         self._state = {"friction_brake_frac": 0.0}
         self.t = 0.0

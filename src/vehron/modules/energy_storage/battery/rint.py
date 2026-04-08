@@ -2,14 +2,52 @@
 
 from __future__ import annotations
 
-from vehron.modules.base import BaseModule
+from vehron.modules.energy_storage.battery.base import BatteryModelBase
 from vehron.state import ModuleInputs, ModuleOutputs, SimState
 
 
-class RintBatteryModel(BaseModule):
+class RintBatteryModel(BatteryModelBase):
+    RATE_DIVISOR: int = 5
+
     def initialize(self, dt: float) -> None:
         self._state = {"soc": float(self.params.get("soc_init", 1.0))}
+        self._sum_p_drive_w = 0.0
+        self._sum_p_hvac_w = 0.0
+        self._sum_p_aux_w = 0.0
+        self._sum_p_regen_w = 0.0
+        self._samples = 0
+        self._accumulated = {
+            "p_drive_w": 0.0,
+            "p_hvac_w": 0.0,
+            "p_aux_w": 0.0,
+            "p_regen_w": 0.0,
+        }
+        self._has_accumulated = False
         self.t = 0.0
+
+    def accumulate(self, sim_state: SimState) -> None:
+        self._sum_p_drive_w += sim_state.p_drive_w
+        self._sum_p_hvac_w += sim_state.p_hvac_w
+        self._sum_p_aux_w += sim_state.p_aux_w
+        self._sum_p_regen_w += sim_state.p_regen_w
+        self._samples += 1
+
+    def flush_accumulator(self) -> None:
+        if self._samples <= 0:
+            return
+        inv = 1.0 / self._samples
+        self._accumulated = {
+            "p_drive_w": self._sum_p_drive_w * inv,
+            "p_hvac_w": self._sum_p_hvac_w * inv,
+            "p_aux_w": self._sum_p_aux_w * inv,
+            "p_regen_w": self._sum_p_regen_w * inv,
+        }
+        self._has_accumulated = True
+        self._sum_p_drive_w = 0.0
+        self._sum_p_hvac_w = 0.0
+        self._sum_p_aux_w = 0.0
+        self._sum_p_regen_w = 0.0
+        self._samples = 0
 
     def step(self, sim_state: SimState, inputs: ModuleInputs, dt: float) -> ModuleOutputs:
         capacity_kwh = float(self.params["capacity_kwh"])
@@ -22,7 +60,26 @@ class RintBatteryModel(BaseModule):
         i_discharge_max_a = capacity_ah * float(self.params.get("max_discharge_rate_c", 4.0))
         i_charge_max_a = capacity_ah * float(self.params.get("max_charge_rate_c", 2.0))
 
-        p_net_w = sim_state.p_drive_w + sim_state.p_hvac_w + sim_state.p_aux_w - sim_state.p_regen_w
+        if self._has_accumulated:
+            p_drive_w = self._accumulated.get("p_drive_w", sim_state.p_drive_w)
+            p_hvac_w = self._accumulated.get("p_hvac_w", sim_state.p_hvac_w)
+            p_aux_w = self._accumulated.get("p_aux_w", sim_state.p_aux_w)
+            p_regen_w = self._accumulated.get("p_regen_w", sim_state.p_regen_w)
+        else:
+            p_drive_w = sim_state.p_drive_w
+            p_hvac_w = sim_state.p_hvac_w
+            p_aux_w = sim_state.p_aux_w
+            p_regen_w = sim_state.p_regen_w
+        power_inputs = self.resolve_power_inputs(
+            SimState(
+                p_drive_w=p_drive_w,
+                p_hvac_w=p_hvac_w,
+                p_aux_w=p_aux_w,
+                p_regen_w=p_regen_w,
+            ),
+            inputs,
+        )
+        p_net_w = power_inputs["p_net_w"]
         i_ideal_a = p_net_w / nominal_voltage_v if nominal_voltage_v > 0 else 0.0
         i_batt_a = self._clamp(i_ideal_a, -i_charge_max_a, i_discharge_max_a, "i_batt_a")
 

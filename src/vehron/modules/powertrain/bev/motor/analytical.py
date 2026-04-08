@@ -8,6 +8,8 @@ from vehron.state import ModuleInputs, ModuleOutputs, SimState
 
 
 class AnalyticalMotorModel(BaseModule):
+    RATE_DIVISOR: int = 1
+
     def initialize(self, dt: float) -> None:
         self._state = {"motor_power_mech_w": 0.0, "motor_power_elec_w": 0.0}
         self.t = 0.0
@@ -18,10 +20,14 @@ class AnalyticalMotorModel(BaseModule):
         max_speed_rads = float(self.params["max_speed_rpm"]) * RPM_TO_RADS
         wheel_radius_m = float(self.params["wheel_radius_m"])
 
-        motor_speed_rads = sim_state.v_ms / wheel_radius_m if wheel_radius_m > 0 else 0.0
+        motor_speed_rads = sim_state.motor_speed_rads
+        if motor_speed_rads <= 0.0:
+            motor_speed_rads = sim_state.v_ms / wheel_radius_m if wheel_radius_m > 0 else 0.0
         motor_speed_rads = min(max(motor_speed_rads, 0.0), max_speed_rads)
 
-        requested_torque_nm = sim_state.wheel_torque_nm
+        requested_torque_nm = sim_state.motor_torque_nm
+        if requested_torque_nm == 0.0:
+            requested_torque_nm = sim_state.wheel_torque_nm
         motor_torque_nm = self._clamp(requested_torque_nm, -peak_torque_nm, peak_torque_nm, "motor_torque_nm")
 
         mech_power_w = motor_torque_nm * motor_speed_rads

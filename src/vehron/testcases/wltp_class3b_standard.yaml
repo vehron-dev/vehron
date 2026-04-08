@@ -1,0 +1,33 @@
+testcase:
+  name: "WLTP Class 3b standard cycle"
+  description: "Openly available WLTP Class 3b cycle imported from JRCSTU/wltp (EUPL v1.1)"
+
+environment:
+  ambient_temp_c: 23.0
+  wind_speed_ms: 0.0
+  wind_angle_deg: 0.0
+
+route:
+  mode: drive_cycle
+  distance_km: 23.27
+  grade_pct: 0.0
+  target_speed_kmh: 0.0
+  drive_cycle_file: data/drive_cycles/wltp_class3b_eupl.csv
+
+payload:
+  passengers: 1
+  cargo_kg: 0.0
+
+simulation:
+  dt_s: 1.0
+  max_duration_s: 1900
+  stop_on_soc_min: true
+  external_charging_power_kw: 0.0
+  external_charging_start_s: 0.0
+  external_charging_end_s: 0.0
+
+outputs:
+  time_series: true
+  energy_audit: true
+  plots: [speed, soc, power_split, temperatures]
+  report: true

@@ -1,14 +1,269 @@
-# vehron
-VEHRON — VEHicle, Research & Optimisation Network
+# VEHRON
 
-## Development setup
+VEHRON stands for **VEHicle Research and Optimisation Network**.
+
+VEHRON is an open-source, modular, forward-time vehicle simulation software focused on engineering use-cases such as:
+
+- Energy consumption estimation
+- Range and SOC trajectory prediction
+- Powertrain and subsystem sizing studies
+- Thermal trend analysis
+- Test-case comparison across vehicle configurations
+
+The guiding idea is simple:
+
+- The **engine** coordinates simulation time and module execution.
+- The **physics** lives in modules.
+- Vehicle and experiment definitions come from **configuration files**.
+
+This repository is currently in an active build-up phase with a working BEV 4W pipeline and fixed multi-rate scheduling support.
+
+---
+
+## 1. What VEHRON Is Designed To Do
+
+VEHRON is designed as a **component-based simulator**, not a monolithic model. You can swap component models over time as fidelity improves.
+
+### Core design principles
+
+- **Modularity**: each subsystem (driver, dynamics, motor, battery, HVAC, etc.) is a separate module.
+- **Determinism**: same inputs produce same outputs.
+- **Boundary conversion discipline**: boundary units are converted to SI internally.
+- **Extensibility**: add or upgrade models without rewriting the core engine loop.
+- **Config-driven operation**: vehicle and test case are defined by YAML files.
+
+### Supported focus today
+
+- Primary: **BEV 4W** (working)
+- Planned next: **BEV 2W** using the same core architecture with archetype-specific parameters
+
+---
+
+## 2. Current Functional Scope (As Implemented)
+
+The current pipeline supports a complete BEV simulation loop with these active model blocks:
+
+- Driver speed tracking (PID)
+- Longitudinal dynamics (traction, brake, rolling resistance, aero drag, grade)
+- Fixed-ratio reduction drivetrain (primary + secondary reduction + efficiency)
+- Motor model (analytical and map-based variant)
+- Inverter efficiency model
+- Blended regenerative braking model
+- Battery electrical model (Rint)
+- Aux DC loads
+- Cabin HVAC load model
+- Simplified battery/motor/coolant thermal trend models
+- Energy channel bookkeeping
+
+Battery slot architecture:
+
+- VEHRON keeps a reference in-repo battery model: `RintBatteryModel`
+- Third-party battery models can be hot-swapped into the battery slot
+- Private battery code does **not** need to live in this repository
+- External battery models only need to implement the VEHRON battery slot interface
+- The battery slot contract is defined by `BatteryModelBase`
+- VEHRON can load a private battery class at runtime from a local Python file
+- This lets a battery team keep proprietary pack physics outside GitHub while still running inside VEHRON
+
+### Important note on maturity
+
+This is an **engineering MVP**, not a fully calibrated production-grade simulator yet. The architecture is intentionally ready for incremental fidelity upgrades.
+
+---
+
+## 3. Multi-rate Integration Logic (Implemented)
+
+VEHRON uses **fixed-step multi-rate integration**.
+
+- Simulation has a master clock `dt` (default `0.1 s`).
+- Each module defines `RATE_DIVISOR`.
+- Module run interval = `master_dt * RATE_DIVISOR`.
+- Between executions, module outputs are held (zero-order hold behavior).
+
+### Why this exists
+
+Different physics evolve at different time scales. Running all modules at the fastest rate is wasteful and often unnecessary.
+
+### Accumulator behavior
+
+For slow modules:
+
+- `accumulate(sim_state)` is called every master step.
+- `flush_accumulator()` finalizes buffered inputs right before `step()`.
+- `step()` uses the interval-aggregated data.
+
+Use:
+
+- **Averages** for intensive quantities (temperature, current, voltage, speed)
+- **Sums** for extensive quantities (energy, heat, distance)
+
+### Current active module rates in BEV 4W run
+
+- Driver: divisor `1` -> `0.1 s`
+- Dynamics: divisor `1` -> `0.1 s`
+- Reducer: divisor `1` -> `0.1 s`
+- Motor: divisor `1` -> `0.1 s`
+- Inverter: divisor `1` -> `0.1 s`
+- Regen: divisor `1` -> `0.1 s`
+- Battery electrical: divisor `5` -> `0.5 s`
+- Aux loads: divisor `10` -> `1.0 s`
+- Battery thermal: divisor `20` -> `2.0 s`
+- Motor thermal: divisor `20` -> `2.0 s`
+- Coolant loop: divisor `100` -> `10.0 s`
+- HVAC cabin: divisor `100` -> `10.0 s`
+
+---
+
+## 4. Inputs and Outputs
+
+### Inputs to VEHRON
+
+VEHRON currently takes two primary YAML inputs:
+
+1. **Vehicle archetype YAML**
+- Vehicle mass/geometry/aero
+- Reduction ratios and drivetrain efficiency
+- Motor parameters
+- Battery parameters
+- Optional external battery implementation path/class
+- Tyre/HVAC/aux load parameters
+
+2. **Test case YAML**
+- Environment (ambient, wind)
+- Route mode and constraints (parametric or drive-cycle)
+- Simulation settings (`dt`, max duration, stop criteria)
+- Optional external charging window:
+  - `external_charging_power_kw`
+  - `external_charging_start_s`
+  - `external_charging_end_s`
+
+Optional:
+
+- Drive-cycle CSV (`time_s, speed_kmh`) for cycle-driven runs
+
+For private battery plugins, the battery section can point to a local Python file:
+
+```yaml
+battery:
+  model: external
+  external_module_path: /absolute/or/relative/path/to/private_battery.py
+  external_class_name: PrivateBatteryModel
+  capacity_kwh: 55.0
+  nominal_voltage_v: 360
+  internal_resistance_ohm: 0.08
+  max_charge_rate_c: 2.0
+  max_discharge_rate_c: 5.0
+  soc_init: 0.98
+  soc_min: 0.05
+  soc_max: 0.98
+```
+
+What VEHRON expects from an external battery model:
+
+- The class must inherit from `BatteryModelBase`
+- The class is loaded from `battery.external_module_path`
+- The class name is taken from `battery.external_class_name`
+- The battery module still behaves like a normal VEHRON module: it receives `sim_state`, `inputs`, and `effective_dt`
+- VEHRON owns system-level mission demand; the battery model owns pack-level electrical and thermal response inside the battery slot
+
+What VEHRON provides to the battery slot:
+
+- Traction-side power demand
+- Regen power request
+- HVAC electrical load
+- Auxiliary electrical load
+- Optional external charging power
+- Ambient and pack/coolant trend states already present in `SimState`
+
+What the battery slot is expected to write back:
+
+- Pack current
+- Pack terminal voltage
+- Net battery power
+- SOC update
+- Battery temperature-related state if the model owns it
+- Any battery-side limits or internal states exposed through the VEHRON state contract
+
+### Outputs from VEHRON
+
+Current outputs are:
+
+- CLI summary (steps, distance, final SOC, total net energy)
+- Full in-memory time series (available during run)
+- Case artifacts (when saved as a case package):
+  - `summary.json`
+  - `timeseries.csv`
+  - plots (`speed`, `SOC`, `power channels`, `thermal channels`)
+  - copied input snapshots (`vehicle.yaml`, `testcase.yaml`)
+  - case `README.md` with model/rate metadata
+
+Charging and regen observability:
+
+- Regenerative charging appears through positive `p_regen_w` and accumulated `e_regen_wh`.
+- Net battery charging appears as negative `i_batt_a` and negative `p_batt_w`.
+- External charging contributes through the optional testcase charging window fields.
+
+---
+
+## 5. Case Packaging Convention
+
+Case runs should be saved under:
+
+- `output/cases/<case_name>/`
+
+Current naming style includes archetype explicitly, e.g.:
+
+- `case_bev_car_sedan_flat_highway_YYYYMMDD_HHMMSS`
+
+A case package should include:
+
+- `README.md` describing run context and model stack
+- `summary.json` with reproducible metadata
+- `timeseries.csv`
+- `plots/` images
+- input snapshots
+
+---
+
+## 6. Repository Layout (High-level)
+
+- `src/vehron/`: main package
+- `src/vehron/modules/`: physics modules
+- `src/vehron/schemas/`: pydantic config schemas
+- `src/vehron/archetypes/`: vehicle YAMLs
+- `src/vehron/testcases/`: testcase YAMLs
+- `data/`: maps and cycle files
+- `tests/`: unit and integration tests
+- `docs/`: architecture and references
+- `CODEX.md`: project conventions and architecture contract
+
+---
+
+## 7. Development Setup
+
+### Requirements
+
+- Python 3.10+
+- Virtual environment recommended
+
+### Fresh install from Git
+
+```bash
+git clone <your-vehron-repo-url>
+cd vehron
+python3 -m venv .venv
+source .venv/bin/activate
+pip install -e .
+```
+
+### Install (editable)
 
 ```bash
 source .venv/bin/activate
 pip install -e .
 ```
 
-## Run a BEV simulation
+### Run one simple BEV 4W case
 
 ```bash
 vehron run \
@@ -16,8 +271,256 @@ vehron run \
   --testcase src/vehron/testcases/flat_highway_100kmh.yaml
 ```
 
-## Run tests
+### Run WLTP Class 3b cycle (openly available source)
+
+```bash
+vehron run \
+  --vehicle src/vehron/archetypes/bev_car_sedan.yaml \
+  --testcase src/vehron/testcases/wltp_class3b_standard.yaml
+```
+
+To evaluate any vehicle on WLTP, keep the same testcase and swap `--vehicle`.
+
+### LFP_model_v2 interface hooks
+
+Export VEHRON traces for the battery team model:
+
+```bash
+vehron run \
+  --vehicle src/vehron/archetypes/bev_car_sedan.yaml \
+  --testcase src/vehron/testcases/wltp_class3b_standard.yaml \
+  --lfp-export-dir output/interop/LFP_model_v2/wltp_run_001
+```
+
+Optional feedback import before run:
+
+```bash
+vehron run \
+  --vehicle src/vehron/archetypes/bev_car_sedan.yaml \
+  --testcase src/vehron/testcases/wltp_class3b_standard.yaml \
+  --lfp-feedback-file input/lfp_model_v2_feedback.json \
+  --lfp-export-dir output/interop/LFP_model_v2/wltp_run_002
+```
+
+Interface contract details:
+
+- [docs/lfp_model_v2_interface.md](/home/sn/02_git/vehron/docs/lfp_model_v2_interface.md)
+- [docs/battery_slot_interface.md](/home/sn/02_git/vehron/docs/battery_slot_interface.md)
+
+### Private battery model hook
+
+External battery implementations should subclass:
+
+- [base.py](/home/sn/02_git/vehron/src/vehron/modules/energy_storage/battery/base.py)
+
+VEHRON will load the class from `battery.external_module_path` at runtime as long as it inherits from `BatteryModelBase`.
+
+This is the intended workflow for a private battery team:
+
+1. Clone VEHRON and install it in a virtual environment.
+2. Keep their proprietary battery file in a private path outside this repository if they want.
+3. Point the vehicle YAML battery section to that file and class name.
+4. Run VEHRON normally through `vehron run ...`.
+
+VEHRON does not need the private battery code committed into this repository.
+
+Example private battery configuration:
+
+```yaml
+battery:
+  model: external
+  external_module_path: /path/to/private_battery.py
+  external_class_name: PrivateBatteryModel
+  capacity_kwh: 55.0
+  nominal_voltage_v: 360.0
+  internal_resistance_ohm: 0.08
+  max_charge_rate_c: 2.0
+  max_discharge_rate_c: 5.0
+  soc_init: 0.95
+  soc_min: 0.05
+  soc_max: 0.98
+```
+
+### Battery Team Quick Start
+
+This is the shortest path for a third-party battery team to run a private pack model inside VEHRON.
+
+1. Clone and install VEHRON:
+
+```bash
+git clone <your-vehron-repo-url>
+cd vehron
+python3 -m venv .venv
+source .venv/bin/activate
+pip install -e .
+```
+
+2. Keep the private battery file in any local path, for example:
+
+```text
+/home/user/private_models/private_battery.py
+```
+
+3. Make sure the class inherits from `BatteryModelBase`.
+
+4. Point the vehicle YAML to that private file:
+
+```yaml
+battery:
+  model: external
+  external_module_path: /home/user/private_models/private_battery.py
+  external_class_name: PrivateBatteryModel
+  capacity_kwh: 55.0
+  nominal_voltage_v: 360.0
+  internal_resistance_ohm: 0.08
+  max_charge_rate_c: 2.0
+  max_discharge_rate_c: 5.0
+  soc_init: 0.95
+  soc_min: 0.05
+  soc_max: 0.98
+```
+
+5. Run VEHRON normally:
+
+```bash
+vehron run \
+  --vehicle path/to/vehicle_with_private_battery.yaml \
+  --testcase src/vehron/testcases/wltp_class3b_standard.yaml
+```
+
+6. If the battery team also wants VEHRON mission traces for offline analysis, export them:
+
+```bash
+vehron run \
+  --vehicle path/to/vehicle_with_private_battery.yaml \
+  --testcase src/vehron/testcases/wltp_class3b_standard.yaml \
+  --lfp-export-dir output/interop/LFP_model_v2/wltp_run_001
+```
+
+Recommended handoff from the battery team:
+
+- private Python file or package
+- class name
+- required configuration parameters and units
+- any extra Python dependencies
+- one smoke-test scenario with expected behavior
+
+Starter template:
+
+- [private_battery_stub.py](/home/sn/02_git/vehron/docs/examples/private_battery_stub.py)
+
+### Run tests
 
 ```bash
 pytest tests/unit tests/integration/test_bev_car_flat.py -q
 ```
+
+---
+
+## 8. What Physics Is Solved Today
+
+Current solved/approximated physics:
+
+- Longitudinal force balance and vehicle motion integration
+- Aero drag and rolling resistance force effects
+- Grade effect on tractive demand
+- Drivetrain reduction mapping (wheel -> motor shaft)
+- Motor/inverter conversion losses
+- Regenerative braking power recovery limits
+- Battery SOC/voltage/current under load and during charging (Rint)
+- HVAC and auxiliary electrical loads
+- Simplified first-order thermal evolution
+
+Not yet high-fidelity:
+
+- Detailed tyre slip dynamics (Pacejka runtime integration)
+- Detailed electrochemical battery dynamics
+- Advanced cooling network and thermal coupling
+- Full calibration against measured datasets
+
+Important current battery-model limitations:
+
+- The in-repo reference battery model is still a simple `Rint` pack model
+- OCV is currently represented in a simplified way, not as a full SOC-dependent lookup curve
+- Battery thermal output today is a pack-level trend state, not a resolved cell-core temperature model
+- Cross-cycle ageing progression is expected to be handled by an external workflow for now
+
+---
+
+## 9. Roadmap Ahead
+
+This is the intended sequence for practical progress.
+
+### Phase A — Stabilize 4W BEV Baseline
+
+- Freeze I/O contract for archetype + testcase YAML
+- Add robust case export command
+- Improve error messaging and validation diagnostics
+- Add reproducibility checks and golden baseline runs
+- Keep a standard WLTP Class 3b benchmark testcase for all archetypes
+
+### Phase B — Improve 4W Physics Fidelity
+
+- Richer motor map interpolation and boundary handling
+- Better battery electrical/thermal coupling
+- Add richer battery interface support for OCV tables, ageing-aware parameters, and tighter thermal coupling
+- Tyre model switch support in active runtime flow
+- More realistic regen blending and braking transitions
+
+### Phase C — Validation and Confidence
+
+- Energy closure and consistency tests across scenarios
+- Reference-case benchmarking and calibration workflow
+- Runtime performance profiling and optimization
+
+### Phase D — 2W Enablement
+
+- Add dedicated 2W archetypes and recommended parameter sets
+- Ensure shared modules remain common across 4W and 2W
+- Add 2W-specific validation test matrix
+
+### Phase E — Reporting and UX
+
+- Standard report generation (CSV/JSON/plots bundle)
+- Extended CLI for run + export + compare workflows
+- Better post-processing utilities
+
+---
+
+## 10. Current Status Summary
+
+VEHRON currently has:
+
+- A working BEV 4W simulation path
+- A modular architecture with explicit module contracts
+- Fixed multi-rate scheduler implementation
+- A hot-swappable battery slot for private third-party pack models
+- Case artifact generation workflow
+- Passing unit/integration baseline tests
+
+The foundation is in place. The next value is in model calibration, fidelity upgrades, and 2W rollout.
+
+---
+
+## 11. Contribution Notes
+
+If you add or modify models:
+
+- Keep engine coordination free of subsystem physics equations.
+- Follow module contract in `BaseModule`.
+- Keep SI units internal.
+- Add tests for every model behavior change.
+- Keep configuration backward compatible unless versioning is explicitly updated.
+
+Refer to `CODEX.md` for architecture and guardrails.
+
+---
+
+## 12. Quick Glossary
+
+- **Archetype**: reusable vehicle configuration YAML
+- **Testcase**: experiment condition YAML
+- **Master dt**: global simulation clock step
+- **RATE_DIVISOR**: module update ratio relative to master dt
+- **Effective dt**: actual dt seen by a module (`master_dt * RATE_DIVISOR`)
+- **Accumulator**: per-module input buffer used for slow modules

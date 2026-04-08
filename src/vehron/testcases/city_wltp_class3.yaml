@@ -1,6 +1,6 @@
 testcase:
-  name: "City WLTP-like"
-  description: "Short urban profile from CSV"
+  name: "City WLTP-like stop-start"
+  description: "Urban cycle with accelerations and decelerations for regen visibility"
 
 environment:
   ambient_temp_c: 28.0
@@ -22,9 +22,12 @@ simulation:
   dt_s: 0.2
   max_duration_s: 1800
   stop_on_soc_min: true
+  external_charging_power_kw: 0.0
+  external_charging_start_s: 0.0
+  external_charging_end_s: 0.0
 
 outputs:
   time_series: true
   energy_audit: true
-  plots: [speed, soc]
+  plots: [speed, soc, power_split]
   report: false

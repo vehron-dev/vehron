@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from pydantic import BaseModel, Field, field_validator
+from pydantic import BaseModel, Field, field_validator, model_validator
 
 
 class VehicleSection(BaseModel):
@@ -14,6 +14,9 @@ class VehicleSection(BaseModel):
     frontal_area_m2: float = Field(gt=0)
     drag_coefficient: float = Field(gt=0)
     wheel_radius_m: float = Field(gt=0)
+    primary_reduction_ratio: float = Field(gt=0, default=1.0)
+    secondary_reduction_ratio: float = Field(gt=0, default=1.0)
+    transmission_efficiency: float = Field(gt=0, le=1, default=0.97)
     drivetrain_efficiency: float = Field(gt=0, le=1, default=0.95)
 
     @field_validator("powertrain")
@@ -26,6 +29,8 @@ class VehicleSection(BaseModel):
 
 class BatterySection(BaseModel):
     model: str = Field(default="rint")
+    external_module_path: str | None = None
+    external_class_name: str | None = None
     capacity_kwh: float = Field(gt=0)
     nominal_voltage_v: float = Field(gt=0)
     internal_resistance_ohm: float = Field(gt=0)
@@ -43,6 +48,17 @@ class BatterySection(BaseModel):
         if soc_min is not None and value <= soc_min:
             raise ValueError("battery.soc_max must be greater than battery.soc_min")
         return value
+
+    @model_validator(mode="after")
+    def _validate_external_battery_fields(self) -> "BatterySection":
+        if self.model == "external" and (
+            not self.external_module_path or not self.external_class_name
+        ):
+            raise ValueError(
+                "battery.external_module_path and battery.external_class_name "
+                "are required when battery.model is 'external'"
+            )
+        return self
 
 
 class MotorSection(BaseModel):

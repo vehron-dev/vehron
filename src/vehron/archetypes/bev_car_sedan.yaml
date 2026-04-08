@@ -7,6 +7,9 @@ vehicle:
   frontal_area_m2: 2.25
   drag_coefficient: 0.29
   wheel_radius_m: 0.316
+  primary_reduction_ratio: 3.45
+  secondary_reduction_ratio: 2.85
+  transmission_efficiency: 0.96
   drivetrain_efficiency: 0.94
 
 battery:

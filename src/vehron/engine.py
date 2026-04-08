@@ -8,7 +8,7 @@ from pathlib import Path
 from typing import Any
 
 from vehron.constants import DEFAULT_DT_S
-from vehron.registry import get_module_class
+from vehron.registry import get_battery_module_class, get_module_class
 from vehron.state import ModuleInputs, ModuleOutputs, SimState
 
 
@@ -30,6 +30,8 @@ class SimEngine:
 
         self.dt_s = float(testcase_cfg["simulation"].get("dt_s", DEFAULT_DT_S))
         self.max_duration_s = float(testcase_cfg["simulation"]["max_duration_s"])
+        self._battery_charge_sum_w = 0.0
+        self._battery_charge_samples = 0
 
         self._setup_initial_state()
         self._build_modules()
@@ -103,10 +105,14 @@ class SimEngine:
 
         driver_cls = get_module_class("driver", "pid_driver")
         long_cls = get_module_class("dynamics", "longitudinal")
+        reducer_cls = get_module_class("reducer", "fixed_ratio")
         motor_cls = get_module_class("motor", self.vehicle_cfg["motor"]["model"])
         inverter_cls = get_module_class("inverter", "simple")
         regen_cls = get_module_class("regen", "blended_brake")
-        battery_cls = get_module_class("battery", self.vehicle_cfg["battery"]["model"])
+        battery_cls = get_battery_module_class(
+            self.vehicle_cfg["battery"],
+            self.project_root,
+        )
         hvac_cls = get_module_class("hvac", self.vehicle_cfg["hvac"]["model"])
         aux_cls = get_module_class("aux", "dc_loads")
         batt_thermal_cls = get_module_class("thermal", "battery")
@@ -128,6 +134,12 @@ class SimEngine:
         self.modules = {
             "driver": driver_cls({"kp": 0.9, "ki": 0.08, "kd": 0.02}),
             "dynamics": long_cls(longitudinal_params),
+            "reducer": reducer_cls({
+                "wheel_radius_m": vehicle["wheel_radius_m"],
+                "primary_reduction_ratio": vehicle.get("primary_reduction_ratio", 1.0),
+                "secondary_reduction_ratio": vehicle.get("secondary_reduction_ratio", 1.0),
+                "transmission_efficiency": vehicle.get("transmission_efficiency", 0.97),
+            }),
             "motor": motor_cls({
                 **self.vehicle_cfg["motor"],
                 "wheel_radius_m": vehicle["wheel_radius_m"],
@@ -175,22 +187,48 @@ class SimEngine:
             return True
         return False
 
+    def _external_charging_power_w(self, t_s: float) -> float:
+        sim_cfg = self.testcase_cfg["simulation"]
+        power_kw = float(sim_cfg.get("external_charging_power_kw", 0.0))
+        start_s = float(sim_cfg.get("external_charging_start_s", 0.0))
+        end_s = float(sim_cfg.get("external_charging_end_s", 0.0))
+        if power_kw <= 0.0:
+            return 0.0
+        if end_s <= start_s:
+            return 0.0
+        if start_s <= t_s <= end_s:
+            return power_kw * 1000.0
+        return 0.0
+
     def run(self) -> SimulationResult:
         history: list[dict[str, Any]] = []
-        active_modules = list(self.modules.values())
+        active_modules = list(self.modules.items())
         n_steps = int(self.max_duration_s / self.dt_s) + 1
 
         for step_idx in range(n_steps):
             self._update_target_speed()
+            p_external_charge_w = self._external_charging_power_w(self.sim_state.t)
+            self._battery_charge_sum_w += p_external_charge_w
+            self._battery_charge_samples += 1
 
-            for module in active_modules:
+            for _, module in active_modules:
                 module.accumulate(self.sim_state)
 
-            for module in active_modules:
+            for name, module in active_modules:
                 if step_idx % module.RATE_DIVISOR == 0:
                     module.flush_accumulator()
                     effective_dt = self.dt_s * module.RATE_DIVISOR
-                    outputs = module.step(self.sim_state, ModuleInputs(), effective_dt)
+                    inputs = ModuleInputs()
+                    if name == "battery":
+                        avg_external_charge_w = (
+                            self._battery_charge_sum_w / self._battery_charge_samples
+                            if self._battery_charge_samples > 0
+                            else 0.0
+                        )
+                        inputs = ModuleInputs(extras={"p_external_charge_w": avg_external_charge_w})
+                        self._battery_charge_sum_w = 0.0
+                        self._battery_charge_samples = 0
+                    outputs = module.step(self.sim_state, inputs, effective_dt)
                     self._apply_outputs(self.sim_state, outputs)
                 # else: sim_state retains last output from this module
 

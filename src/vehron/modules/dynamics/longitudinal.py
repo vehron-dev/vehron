@@ -10,6 +10,8 @@ from vehron.state import ModuleInputs, ModuleOutputs, SimState
 
 
 class LongitudinalDynamicsModel(BaseModule):
+    RATE_DIVISOR: int = 1
+
     def initialize(self, dt: float) -> None:
         self._state = {
             "aero_force_n": 0.0,

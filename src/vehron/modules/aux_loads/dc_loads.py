@@ -7,6 +7,8 @@ from vehron.state import ModuleInputs, ModuleOutputs, SimState
 
 
 class DcLoadsModel(BaseModule):
+    RATE_DIVISOR: int = 10
+
     def initialize(self, dt: float) -> None:
         self._state = {"p_aux_w": 0.0}
         self.t = 0.0

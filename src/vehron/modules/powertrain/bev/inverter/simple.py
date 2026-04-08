@@ -7,6 +7,8 @@ from vehron.state import ModuleInputs, ModuleOutputs, SimState
 
 
 class SimpleInverterModel(BaseModule):
+    RATE_DIVISOR: int = 1
+
     def initialize(self, dt: float) -> None:
         self._state = {"p_inverter_in_w": 0.0}
         self.t = 0.0
