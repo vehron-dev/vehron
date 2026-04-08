@@ -1,0 +1,30 @@
+testcase:
+  name: "City WLTP-like"
+  description: "Short urban profile from CSV"
+
+environment:
+  ambient_temp_c: 28.0
+  wind_speed_ms: 0.0
+  wind_angle_deg: 0.0
+
+route:
+  mode: drive_cycle
+  distance_km: 8.0
+  grade_pct: 0.0
+  target_speed_kmh: 0.0
+  drive_cycle_file: data/drive_cycles/wltp_class3.csv
+
+payload:
+  passengers: 1
+  cargo_kg: 10.0
+
+simulation:
+  dt_s: 0.2
+  max_duration_s: 1800
+  stop_on_soc_min: true
+
+outputs:
+  time_series: true
+  energy_audit: true
+  plots: [speed, soc]
+  report: false

@@ -1,0 +1,29 @@
+testcase:
+  name: "Flat highway 100 km/h"
+  description: "Steady speed highway cruise on flat road"
+
+environment:
+  ambient_temp_c: 30.0
+  wind_speed_ms: 0.0
+  wind_angle_deg: 0.0
+
+route:
+  mode: parametric
+  distance_km: 25.0
+  grade_pct: 0.0
+  target_speed_kmh: 100.0
+
+payload:
+  passengers: 2
+  cargo_kg: 30.0
+
+simulation:
+  dt_s: 0.1
+  max_duration_s: 2000
+  stop_on_soc_min: true
+
+outputs:
+  time_series: true
+  energy_audit: true
+  plots: [speed, soc, power_split, temperatures]
+  report: true
