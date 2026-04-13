@@ -1,8 +1,11 @@
+# Copyright (c) 2026 Subramanyam Natarajan
+# SPDX-License-Identifier: AGPL-3.0-only
+
 """Pydantic schema for vehicle YAML."""
 
 from __future__ import annotations
 
-from pydantic import BaseModel, Field, field_validator, model_validator
+from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
 
 
 class VehicleSection(BaseModel):
@@ -28,6 +31,8 @@ class VehicleSection(BaseModel):
 
 
 class BatterySection(BaseModel):
+    model_config = ConfigDict(extra="allow")
+
     model: str = Field(default="rint")
     external_module_path: str | None = None
     external_class_name: str | None = None

@@ -1,3 +1,6 @@
+# Copyright (c) 2026 Subramanyam Natarajan
+# SPDX-License-Identifier: AGPL-3.0-only
+
 """Module registry for VEHRON."""
 
 from __future__ import annotations
@@ -13,6 +16,7 @@ from vehron.modules.dynamics.grade import GradeForceModel
 from vehron.modules.dynamics.longitudinal import LongitudinalDynamicsModel
 from vehron.modules.dynamics.tyre.rolling_resistance import RollingResistanceModel
 from vehron.modules.energy_storage.battery.base import BatteryModelBase
+from vehron.modules.energy_storage.battery.ecm_2rc import Ecm2RcBatteryModel
 from vehron.modules.energy_storage.battery.rint import RintBatteryModel
 from vehron.modules.hvac.cabin_load import CabinLoadModel
 from vehron.modules.powertrain.bev.inverter.simple import SimpleInverterModel
@@ -36,6 +40,7 @@ MODULE_REGISTRY = {
     "inverter:simple": SimpleInverterModel,
     "regen:blended_brake": BlendedBrakeRegenModel,
     "battery:rint": RintBatteryModel,
+    "battery:ecm_2rc": Ecm2RcBatteryModel,
     "hvac:cabin_load": CabinLoadModel,
     "aux:dc_loads": DcLoadsModel,
     "thermal:battery": BatteryThermalModel,
