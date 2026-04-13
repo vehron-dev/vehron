@@ -18,6 +18,27 @@ The guiding idea is simple:
 
 This repository is currently in an active build-up phase with a working BEV 4W pipeline and fixed multi-rate scheduling support.
 
+## License
+
+VEHRON is licensed under `AGPL-3.0-only`.
+
+This is an intentional copyleft choice.
+
+VEHRON is independent work built from personal engineering effort, time, and experimentation rather than institutional sponsorship. The license choice reflects that context as well as the project's technical goals.
+
+The aim is:
+
+- to keep VEHRON itself open
+- to discourage private SaaS capture without contribution back
+- to preserve a commons around the simulator as it grows
+- to keep long-term stewardship clear as the project evolves
+
+Contributor policy:
+
+- non-trivial contributions are expected to be made under the VEHRON CLA
+- see [CONTRIBUTING.md](/home/sn/02_git/vehron/CONTRIBUTING.md)
+- see [CLA.md](/home/sn/02_git/vehron/CLA.md)
+
 ---
 
 ## 1. What VEHRON Is Designed To Do
@@ -49,21 +70,30 @@ The current pipeline supports a complete BEV simulation loop with these active m
 - Motor model (analytical and map-based variant)
 - Inverter efficiency model
 - Blended regenerative braking model
-- Battery electrical model (Rint)
+- Battery electrical model (`Rint` and `ECM 2RC`)
 - Aux DC loads
-- Cabin HVAC load model
+- Cabin HVAC load model with low-order thermal balance
 - Simplified battery/motor/coolant thermal trend models
 - Energy channel bookkeeping
 
 Battery slot architecture:
 
-- VEHRON keeps a reference in-repo battery model: `RintBatteryModel`
+- VEHRON keeps reference in-repo battery models: `RintBatteryModel` and `Ecm2RcBatteryModel`
 - Third-party battery models can be hot-swapped into the battery slot
 - Private battery code does **not** need to live in this repository
 - External battery models only need to implement the VEHRON battery slot interface
 - The battery slot contract is defined by `BatteryModelBase`
 - VEHRON can load a private battery class at runtime from a local Python file
 - This lets a battery team keep proprietary pack physics outside GitHub while still running inside VEHRON
+
+HVAC slot architecture:
+
+- VEHRON keeps a reference in-repo HVAC model: `CabinLoadModel`
+- Third-party HVAC or AC models can be hot-swapped into the HVAC slot
+- Private HVAC code does **not** need to live in this repository
+- External HVAC models only need to implement the VEHRON HVAC slot interface
+- The HVAC slot contract is defined by `HvacModelBase`
+- VEHRON can load a private HVAC class at runtime from a local Python file
 
 ### Important note on maturity
 
@@ -110,7 +140,7 @@ Use:
 - Battery thermal: divisor `20` -> `2.0 s`
 - Motor thermal: divisor `20` -> `2.0 s`
 - Coolant loop: divisor `100` -> `10.0 s`
-- HVAC cabin: divisor `100` -> `10.0 s`
+- HVAC cabin: divisor `20` -> `2.0 s`
 
 ---
 
@@ -126,6 +156,7 @@ VEHRON currently takes two primary YAML inputs:
 - Motor parameters
 - Battery parameters
 - Optional external battery implementation path/class
+- Optional external HVAC implementation path/class
 - Tyre/HVAC/aux load parameters
 
 2. **Test case YAML**
@@ -158,6 +189,20 @@ battery:
   soc_max: 0.98
 ```
 
+For private HVAC plugins, the HVAC section can point to a local Python file:
+
+```yaml
+hvac:
+  model: external
+  external_module_path: /absolute/or/relative/path/to/private_hvac.py
+  external_class_name: PrivateHvacModel
+  rated_power_kw: 4.5
+  cabin_volume_m3: 2.8
+  cop_cooling: 2.5
+  cop_heating: 2.0
+  cabin_setpoint_c: 22.0
+```
+
 What VEHRON expects from an external battery model:
 
 - The class must inherit from `BatteryModelBase`
@@ -183,6 +228,29 @@ What the battery slot is expected to write back:
 - SOC update
 - Battery temperature-related state if the model owns it
 - Any battery-side limits or internal states exposed through the VEHRON state contract
+
+What VEHRON expects from an external HVAC model:
+
+- The class must inherit from `HvacModelBase`
+- The class is loaded from `hvac.external_module_path`
+- The class name is taken from `hvac.external_class_name`
+- The HVAC module still behaves like a normal VEHRON module: it receives `sim_state`, `inputs`, and `effective_dt`
+- VEHRON owns route and environment context; the HVAC model owns cabin thermal and AC-side behavior inside the HVAC slot
+
+What VEHRON provides to the HVAC slot:
+
+- Ambient temperature
+- Cabin temperature state
+- Vehicle speed
+- Solar irradiance
+- Passenger count
+- Any other shared thermal context already present in `SimState`
+
+What the HVAC slot is expected to write back:
+
+- HVAC electrical power `p_hvac_w`
+- Cabin temperature `t_cabin_k`
+- Any HVAC-side internal states exposed through the VEHRON state contract
 
 ### Outputs from VEHRON
 
@@ -408,6 +476,10 @@ Recommended handoff from the battery team:
 Starter template:
 
 - [private_battery_stub.py](/home/sn/02_git/vehron/docs/examples/private_battery_stub.py)
+- [private_hvac_stub.py](/home/sn/02_git/vehron/docs/examples/private_hvac_stub.py)
+- [docs/hvac_slot_interface.md](/home/sn/02_git/vehron/docs/hvac_slot_interface.md)
+- [docs/models/cabin_thermal_model.md](/home/sn/02_git/vehron/docs/models/cabin_thermal_model.md)
+- [docs/references.md](/home/sn/02_git/vehron/docs/references.md)
 
 ### Run tests
 
@@ -427,8 +499,9 @@ Current solved/approximated physics:
 - Drivetrain reduction mapping (wheel -> motor shaft)
 - Motor/inverter conversion losses
 - Regenerative braking power recovery limits
-- Battery SOC/voltage/current under load and during charging (Rint)
+- Battery SOC/voltage/current under load and during charging (`Rint`, `ECM 2RC`)
 - HVAC and auxiliary electrical loads
+- Low-order cabin thermal balance with solar, envelope, ventilation, and occupant gains
 - Simplified first-order thermal evolution
 
 Not yet high-fidelity:
@@ -440,10 +513,17 @@ Not yet high-fidelity:
 
 Important current battery-model limitations:
 
-- The in-repo reference battery model is still a simple `Rint` pack model
-- OCV is currently represented in a simplified way, not as a full SOC-dependent lookup curve
+- The in-repo battery models are still low-order pack models, not full electrochemical pack solvers
+- OCV is currently represented in a simplified way, not as a full SOC-temperature lookup surface
 - Battery thermal output today is a pack-level trend state, not a resolved cell-core temperature model
 - Cross-cycle ageing progression is expected to be handled by an external workflow for now
+
+Important current HVAC-model limitations:
+
+- The in-repo cabin model is a low-order single-zone lumped model
+- Humidity and latent cooling load are not modeled yet
+- Solar geometry and orientation-specific glazing effects are simplified
+- Compressor-cycle detail and heat-pump maps are expected to be handled by richer future or external HVAC models
 
 ---
 

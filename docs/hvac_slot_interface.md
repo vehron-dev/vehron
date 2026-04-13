@@ -56,6 +56,10 @@ Notes:
 - `external_class_name` must exist in that Python file.
 - The class must inherit from `HvacModelBase`.
 
+Example stub:
+
+- [private_hvac_stub.py](/home/sn/02_git/vehron/docs/examples/private_hvac_stub.py)
+
 ## Thermal Boundary Helper
 
 `HvacModelBase` includes a helper:
