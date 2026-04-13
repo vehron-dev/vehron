@@ -1,4 +1,4 @@
-# Copyright (c) 2026 Subramanyam Natarajan
+# Copyright (C) 2026 Subramanyam Natarajan
 # SPDX-License-Identifier: AGPL-3.0-only
 
 """Pydantic schema for vehicle YAML."""
@@ -83,11 +83,32 @@ class TyreSection(BaseModel):
 
 class HVACSection(BaseModel):
     model: str = Field(default="cabin_load")
+    external_module_path: str | None = None
+    external_class_name: str | None = None
     rated_power_kw: float = Field(gt=0, default=4.0)
     cabin_volume_m3: float = Field(gt=0, default=2.8)
     cop_cooling: float = Field(gt=0, default=2.5)
     cop_heating: float = Field(gt=0, default=2.0)
     cabin_setpoint_c: float = Field(default=22.0)
+    interior_thermal_mass_kjk: float = Field(gt=0, default=75.0)
+    body_ua_wk: float = Field(gt=0, default=120.0)
+    speed_ua_per_ms_wk: float = Field(ge=0, default=3.0)
+    glazed_area_m2: float = Field(gt=0, default=2.2)
+    solar_transmittance: float = Field(gt=0, le=1, default=0.55)
+    fresh_air_ach: float = Field(gt=0, default=8.0)
+    occupant_sensible_w: float = Field(gt=0, default=75.0)
+    control_tau_s: float = Field(gt=0, default=240.0)
+
+    @model_validator(mode="after")
+    def _validate_external_hvac_fields(self) -> "HVACSection":
+        if self.model == "external" and (
+            not self.external_module_path or not self.external_class_name
+        ):
+            raise ValueError(
+                "hvac.external_module_path and hvac.external_class_name "
+                "are required when hvac.model is 'external'"
+            )
+        return self
 
 
 class AuxLoadsSection(BaseModel):

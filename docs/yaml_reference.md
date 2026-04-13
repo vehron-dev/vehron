@@ -98,12 +98,42 @@ battery:
 
 ### `hvac`
 
-- `model`
+- `model`: `cabin_load` or `external`
+- `external_module_path`
+- `external_class_name`
 - `rated_power_kw`
 - `cabin_volume_m3`
 - `cop_cooling`
 - `cop_heating`
 - `cabin_setpoint_c`
+- `interior_thermal_mass_kjk`
+- `body_ua_wk`
+- `speed_ua_per_ms_wk`
+- `glazed_area_m2`
+- `solar_transmittance`
+- `fresh_air_ach`
+- `occupant_sensible_w`
+- `control_tau_s`
+
+Rule of thumb:
+
+- cabin and envelope properties belong in the vehicle YAML
+- ambient temperature and solar loading belong in the testcase YAML
+- passenger count belongs in testcase payload and feeds cabin internal gains
+
+For a private external HVAC model:
+
+```yaml
+hvac:
+  model: external
+  external_module_path: /path/to/private_hvac.py
+  external_class_name: PrivateHvacModel
+  rated_power_kw: 4.5
+  cabin_volume_m3: 2.8
+  cop_cooling: 2.5
+  cop_heating: 2.0
+  cabin_setpoint_c: 22.0
+```
 
 ### `aux_loads`
 
@@ -118,6 +148,7 @@ battery:
 
 - `ambient_temp_c`
 - `wind_speed_ms`
+- `solar_irradiance_wm2`
 
 ### `route`
 

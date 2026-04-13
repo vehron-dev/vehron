@@ -14,6 +14,7 @@ class EnvironmentSection(BaseModel):
     ambient_temp_c: float = Field(default=25.0)
     wind_speed_ms: float = Field(ge=0, default=0.0)
     wind_angle_deg: float = Field(default=0.0)
+    solar_irradiance_wm2: float = Field(ge=0, default=0.0)
 
 
 class RouteSection(BaseModel):

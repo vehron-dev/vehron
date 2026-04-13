@@ -11,3 +11,95 @@ def test_loader_validates_and_converts(project_root):
     assert vehicle["vehicle"]["powertrain"] == "bev"
     assert testcase["_internal"]["target_speed_ms"] > 0
     assert testcase["_internal"]["ambient_temp_k"] > 273.15
+
+
+def test_loader_accepts_external_hvac_config(project_root, tmp_path):
+    hvac_file = tmp_path / "private_hvac.py"
+    hvac_file.write_text(
+        (
+            "from vehron.modules.hvac.base import HvacModelBase\n"
+            "from vehron.state import ModuleOutputs\n\n"
+            "class PrivateHvacModel(HvacModelBase):\n"
+            "    def initialize(self, dt):\n"
+            "        self._state = {'mode': 'off'}\n"
+            "    def step(self, sim_state, inputs, dt):\n"
+            "        return ModuleOutputs(p_hvac_w=0.0, t_cabin_k=sim_state.t_cabin_k)\n"
+            "    def get_state(self):\n"
+            "        return dict(self._state)\n"
+            "    def validate_params(self):\n"
+            "        pass\n"
+        ),
+        encoding="utf-8",
+    )
+    vehicle_yaml = tmp_path / "vehicle_external_hvac.yaml"
+    vehicle_yaml.write_text(
+        f"""
+vehicle:
+  name: "External HVAC Test Vehicle"
+  archetype: car
+  powertrain: bev
+  mass_kg: 1450
+  payload_kg: 120
+  frontal_area_m2: 2.25
+  drag_coefficient: 0.29
+  wheel_radius_m: 0.316
+  primary_reduction_ratio: 3.45
+  secondary_reduction_ratio: 2.85
+  transmission_efficiency: 0.96
+  drivetrain_efficiency: 0.94
+
+battery:
+  model: rint
+  capacity_kwh: 55.0
+  nominal_voltage_v: 360
+  internal_resistance_ohm: 0.08
+  thermal_mass_kjk: 28.0
+  max_charge_rate_c: 2.0
+  max_discharge_rate_c: 5.0
+  soc_init: 0.98
+  soc_min: 0.05
+  soc_max: 0.98
+
+motor:
+  model: analytical
+  peak_power_kw: 160
+  peak_torque_nm: 320
+  max_speed_rpm: 14000
+  base_efficiency: 0.93
+
+tyre:
+  model: rolling_resistance
+  rolling_resistance_coeff: 0.009
+
+hvac:
+  model: external
+  external_module_path: {hvac_file}
+  external_class_name: PrivateHvacModel
+  rated_power_kw: 4.5
+  cabin_volume_m3: 2.8
+  cop_cooling: 2.5
+  cop_heating: 2.0
+  cabin_setpoint_c: 22.0
+  interior_thermal_mass_kjk: 75.0
+  body_ua_wk: 120.0
+  speed_ua_per_ms_wk: 3.0
+  glazed_area_m2: 2.2
+  solar_transmittance: 0.55
+  fresh_air_ach: 8.0
+  occupant_sensible_w: 75.0
+  control_tau_s: 240.0
+
+aux_loads:
+  headlights_w: 80
+  adas_w: 150
+  infotainment_w: 60
+  power_steering_w: 100
+""",
+        encoding="utf-8",
+    )
+
+    loader = ConfigLoader(project_root=project_root)
+    vehicle = loader.load_vehicle(vehicle_yaml)
+
+    assert vehicle["hvac"]["model"] == "external"
+    assert vehicle["hvac"]["external_class_name"] == "PrivateHvacModel"

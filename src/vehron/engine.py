@@ -8,7 +8,11 @@ from pathlib import Path
 from typing import Any
 
 from vehron.constants import DEFAULT_DT_S
-from vehron.registry import get_battery_module_class, get_module_class
+from vehron.registry import (
+    get_battery_module_class,
+    get_hvac_module_class,
+    get_module_class,
+)
 from vehron.state import ModuleInputs, ModuleOutputs, SimState
 
 
@@ -113,7 +117,10 @@ class SimEngine:
             self.vehicle_cfg["battery"],
             self.project_root,
         )
-        hvac_cls = get_module_class("hvac", self.vehicle_cfg["hvac"]["model"])
+        hvac_cls = get_hvac_module_class(
+            self.vehicle_cfg["hvac"],
+            self.project_root,
+        )
         aux_cls = get_module_class("aux", "dc_loads")
         batt_thermal_cls = get_module_class("thermal", "battery")
         motor_thermal_cls = get_module_class("thermal", "motor")
@@ -153,7 +160,11 @@ class SimEngine:
             "battery_thermal": batt_thermal_cls({"tau_s": 600.0}),
             "motor_thermal": motor_thermal_cls({"tau_s": 450.0}),
             "coolant_loop": coolant_cls({"tau_s": 900.0}),
-            "hvac": hvac_cls(self.vehicle_cfg["hvac"]),
+            "hvac": hvac_cls({
+                **self.vehicle_cfg["hvac"],
+                "passenger_count": self.testcase_cfg.get("payload", {}).get("passengers", 0),
+                "solar_irradiance_wm2": self.testcase_cfg["environment"].get("solar_irradiance_wm2", 0.0),
+            }),
             "aux_loads": aux_cls(self.vehicle_cfg["aux_loads"]),
         }
 
@@ -228,6 +239,11 @@ class SimEngine:
                         inputs = ModuleInputs(extras={"p_external_charge_w": avg_external_charge_w})
                         self._battery_charge_sum_w = 0.0
                         self._battery_charge_samples = 0
+                    if name == "hvac":
+                        inputs = ModuleInputs(extras={
+                            "passenger_count": self.testcase_cfg.get("payload", {}).get("passengers", 0),
+                            "solar_irradiance_wm2": self.testcase_cfg["environment"].get("solar_irradiance_wm2", 0.0),
+                        })
                     outputs = module.step(self.sim_state, inputs, effective_dt)
                     self._apply_outputs(self.sim_state, outputs)
                 # else: sim_state retains last output from this module

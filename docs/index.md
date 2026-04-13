@@ -19,8 +19,11 @@ technical meaning should originate here.
 - [YAML Reference](yaml_reference.md)
 - [Adding a Module](adding_a_module.md)
 - [Source File Standard](source_file_standard.md)
+- [References](references.md)
 - [Battery Slot Interface](battery_slot_interface.md)
+- [HVAC Slot Interface](hvac_slot_interface.md)
 - [ECM 2RC Battery Model](models/battery_ecm_2rc.md)
+- [Cabin Thermal Model](models/cabin_thermal_model.md)
 - [Website Handoff](website_handoff.md)
 
 ## Current Documentation Scope

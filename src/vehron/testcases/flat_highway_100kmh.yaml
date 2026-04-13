@@ -6,6 +6,7 @@ environment:
   ambient_temp_c: 30.0
   wind_speed_ms: 0.0
   wind_angle_deg: 0.0
+  solar_irradiance_wm2: 750.0
 
 route:
   mode: parametric

@@ -1,4 +1,4 @@
-# Copyright (c) 2026 Subramanyam Natarajan
+# Copyright (C) 2026 Subramanyam Natarajan
 # SPDX-License-Identifier: AGPL-3.0-only
 
 """Module registry for VEHRON."""
@@ -18,6 +18,7 @@ from vehron.modules.dynamics.tyre.rolling_resistance import RollingResistanceMod
 from vehron.modules.energy_storage.battery.base import BatteryModelBase
 from vehron.modules.energy_storage.battery.ecm_2rc import Ecm2RcBatteryModel
 from vehron.modules.energy_storage.battery.rint import RintBatteryModel
+from vehron.modules.hvac.base import HvacModelBase
 from vehron.modules.hvac.cabin_load import CabinLoadModel
 from vehron.modules.powertrain.bev.inverter.simple import SimpleInverterModel
 from vehron.modules.powertrain.bev.motor.analytical import AnalyticalMotorModel
@@ -109,6 +110,59 @@ def get_battery_module_class(
         raise ModuleRegistrationError(
             f"External battery class '{class_name}' must inherit from "
             "BatteryModelBase"
+        )
+
+    return cls
+
+
+def get_hvac_module_class(
+    hvac_cfg: dict[str, object],
+    project_root: Path,
+):
+    """Resolve an in-repo or external private HVAC implementation."""
+    model = str(hvac_cfg.get("model", "cabin_load"))
+    if model != "external":
+        return get_module_class("hvac", model)
+
+    module_path_value = hvac_cfg.get("external_module_path")
+    class_name_value = hvac_cfg.get("external_class_name")
+    if not module_path_value or not class_name_value:
+        raise ModuleRegistrationError(
+            "hvac.external_module_path and hvac.external_class_name "
+            "must be set for external hvac models"
+        )
+
+    module_path = Path(str(module_path_value))
+    if not module_path.is_absolute():
+        module_path = project_root / module_path
+    if not module_path.exists():
+        raise ModuleRegistrationError(
+            f"External hvac module file not found: {module_path}"
+        )
+
+    spec = importlib.util.spec_from_file_location(
+        f"vehron_external_hvac_{module_path.stem}",
+        module_path,
+    )
+    if spec is None or spec.loader is None:
+        raise ModuleRegistrationError(
+            f"Unable to load external hvac module from {module_path}"
+        )
+
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+
+    class_name = str(class_name_value)
+    if not hasattr(module, class_name):
+        raise ModuleRegistrationError(
+            f"External hvac class '{class_name}' not found in {module_path}"
+        )
+
+    cls = getattr(module, class_name)
+    if not isinstance(cls, type) or not issubclass(cls, HvacModelBase):
+        raise ModuleRegistrationError(
+            f"External hvac class '{class_name}' must inherit from "
+            "HvacModelBase"
         )
 
     return cls

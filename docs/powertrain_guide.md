@@ -37,6 +37,10 @@ At runtime, these are orchestrated by `SimEngine` and connected through
 - regenerative braking
 - battery electrical response
 - simplified thermal trends
+- low-order cabin thermal load with solar, envelope, ventilation, and occupant gains
+
+The cabin-load formulation follows the literature-standard lumped-parameter
+approach used for vehicle thermal models. See [Cabin Thermal Model](models/cabin_thermal_model.md).
 
 ## Battery Model Options
 
@@ -69,6 +73,22 @@ Use this for:
 - more realistic transient load response
 - regen behavior studies
 - improved voltage/current realism without a heavy electrochemical model
+
+## HVAC Model Options
+
+### `cabin_load`
+
+In-repo low-order cabin thermal model with:
+
+- solar gain
+- envelope heat exchange
+- ventilation load
+- occupant sensible heat
+
+### `external`
+
+Private third-party HVAC model loaded at runtime through the HVAC slot
+interface.
 
 ## What Is Not Yet the Main BEV Path
 
