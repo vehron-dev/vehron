@@ -1,0 +1,349 @@
+@startmindmap
+skinparam BackgroundColor white
+skinparam Shadowing false
+skinparam RoundCorner 12
+skinparam DefaultFontName Arial
+skinparam ArrowColor #666666
+skinparam NodeFontColor #1f1f1f
+skinparam NodeBorderColor #555555
+skinparam NodeBackgroundColor #f7f7f7
+
+<style>
+mindmapDiagram {
+  node {
+    Padding 10
+    Margin 6
+  }
+  .core {
+    BackgroundColor #d9ecff
+    LineColor #2f6fb0
+    FontColor #10263f
+  }
+  .active {
+    BackgroundColor #fff0d9
+    LineColor #c77700
+    FontColor #4d2e00
+  }
+  .optional {
+    BackgroundColor #fff7cc
+    LineColor #b38b00
+    FontColor #4d3b00
+  }
+  .extension {
+    BackgroundColor #dff8f4
+    LineColor #147a6c
+    FontColor #0f3a34
+  }
+  .data {
+    BackgroundColor #e6f7e8
+    LineColor #2e7d32
+    FontColor #133016
+  }
+  .test {
+    BackgroundColor #f0e3ff
+    LineColor #7a42b6
+    FontColor #2e144d
+  }
+  .placeholder {
+    BackgroundColor #ededed
+    LineColor #7a7a7a
+    FontColor #222222
+  }
+}
+</style>
+
+* VEHRON Codebase Map <<core>>
+** Purpose <<core>>
+*** Modular forward-time vehicle simulation framework
+*** Current strongest validated path: BEV 4W
+*** Core idea
+**** `engine.py` orchestrates time and execution
+**** `modules/` contains subsystem physics
+**** YAML files define vehicles and testcases
+**** `state.py` is the shared simulation bus
+
+** Reading Legend <<core>>
+*** `[CORE]` central runtime code <<core>>
+*** `[ACTIVE]` default main BEV 4W path <<active>>
+*** `[OPTIONAL]` alternate implementation <<optional>>
+*** `[EXTENSION]` integration hook or plugin point <<extension>>
+*** `[DATA]` input or lookup asset <<data>>
+*** `[TEST]` verification coverage <<test>>
+*** `[PLACEHOLDER]` present in repo but not mainline runtime <<placeholder>>
+
+** Runtime Flow <<core>>
+*** `[CORE]` CLI entrypoint <<core>>
+**** `src/vehron/runner.py`
+**** loads configs
+**** applies optional LFP feedback
+**** builds and runs `SimEngine`
+*** `[CORE]` Config loading <<core>>
+**** `src/vehron/loader.py`
+**** reads YAML
+**** validates with Pydantic schemas
+**** applies unit conversions
+***** ambient C to K
+***** speed km/h to m/s
+***** grade percent to radians
+*** `[CORE]` Config contracts <<core>>
+**** `src/vehron/schemas/vehicle_schema.py`
+**** `src/vehron/schemas/testcase_schema.py`
+**** defines allowed vehicle and testcase structure
+*** `[CORE]` Module resolution <<core>>
+**** `src/vehron/registry.py`
+**** maps `kind:model` keys to Python classes
+**** can load external battery and HVAC modules
+*** `[CORE]` Orchestration engine <<core>>
+**** `src/vehron/engine.py`
+**** builds configured modules
+**** runs fixed-step multi-rate loop
+**** calls `accumulate()`, `flush_accumulator()`, and `step()`
+**** applies `ModuleOutputs` back into `SimState`
+**** collects flat time-series history
+*** `[CORE]` Shared state contract <<core>>
+**** `src/vehron/state.py`
+**** `SimState`
+***** shared bus read by all modules
+**** `ModuleInputs`
+***** module-specific extras from engine
+**** `ModuleOutputs`
+***** writeback payload returned by modules
+
+** Active BEV 4W Simulation Path <<active>>
+*** `[ACTIVE]` Driver <<active>>
+**** `src/vehron/modules/driver/pid_driver.py`
+**** converts target speed error into throttle and brake
+*** `[ACTIVE]` Longitudinal dynamics <<active>>
+**** `src/vehron/modules/dynamics/longitudinal.py`
+**** computes aero, rolling, grade, traction, braking
+**** updates speed, acceleration, distance
+**** produces wheel torque and wheel power
+*** `[ACTIVE]` Reduction drivetrain <<active>>
+**** `src/vehron/modules/powertrain/bev/reduction/fixed_ratio.py`
+**** maps wheel-side torque and speed to motor-side torque and speed
+*** `[ACTIVE]` Motor subsystem <<active>>
+**** `[ACTIVE]` `src/vehron/modules/powertrain/bev/motor/analytical.py` <<active>>
+***** default motor model in active archetype
+***** uses peak torque, peak power, speed limit, base efficiency
+**** `[OPTIONAL]` `src/vehron/modules/powertrain/bev/motor/efficiency_map.py` <<optional>>
+***** uses nearest-point lookup from motor map CSV
+***** only used if vehicle YAML selects `model: efficiency_map`
+*** `[ACTIVE]` Inverter <<active>>
+**** `src/vehron/modules/powertrain/bev/inverter/simple.py`
+**** converts motor-side electrical demand to DC-side demand using efficiency
+*** `[ACTIVE]` Regenerative braking <<active>>
+**** `src/vehron/modules/powertrain/bev/regen/blended_brake.py`
+**** blends friction braking and regen opportunity
+**** produces `p_regen_w`
+*** `[ACTIVE]` Battery subsystem <<active>>
+**** `[ACTIVE]` `src/vehron/modules/energy_storage/battery/rint.py` <<active>>
+***** default in-repo battery model
+**** `[OPTIONAL]` `src/vehron/modules/energy_storage/battery/ecm_2rc.py` <<optional>>
+***** alternate in-repo battery model
+**** `[EXTENSION]` `src/vehron/modules/energy_storage/battery/base.py` <<extension>>
+***** external battery model contract
+**** battery responsibilities
+***** combines traction demand
+***** combines HVAC load
+***** combines aux load
+***** subtracts regen power
+***** applies optional external charging
+***** updates SOC, current, voltage, and battery power
+*** `[ACTIVE]` HVAC subsystem <<active>>
+**** `[ACTIVE]` `src/vehron/modules/hvac/cabin_load.py` <<active>>
+***** cabin thermal model and HVAC electrical load
+**** `[EXTENSION]` `src/vehron/modules/hvac/base.py` <<extension>>
+***** external HVAC model contract
+*** `[ACTIVE]` Aux loads <<active>>
+**** `src/vehron/modules/aux_loads/dc_loads.py`
+**** aggregates headlights, ADAS, infotainment, steering loads
+*** `[ACTIVE]` Thermal trend models <<active>>
+**** `src/vehron/modules/thermal/battery_thermal.py`
+***** battery bulk temperature trend
+**** `src/vehron/modules/thermal/motor_thermal.py`
+***** motor temperature trend
+**** `src/vehron/modules/thermal/coolant_loop.py`
+***** slow coolant equalization between battery and motor
+
+** Key Runtime Connections <<core>>
+*** Target speed path <<core>>
+**** testcase route -> `engine.py`
+**** `engine.py` -> `SimState.target_v_ms`
+**** `pid_driver.py` reads target speed and current speed
+**** outputs throttle and brake
+*** Motion path <<core>>
+**** `longitudinal.py` reads throttle, brake, and vehicle state
+**** outputs speed, acceleration, distance, wheel torque
+**** `fixed_ratio.py` maps wheel outputs to motor outputs
+**** `motor/*.py` computes motor efficiency and drive power
+**** inverter adjusts power to DC-bus side
+*** Energy path <<core>>
+**** `blended_brake.py` creates regen power
+**** `cabin_load.py` creates HVAC power demand
+**** `dc_loads.py` creates aux power demand
+**** battery model combines them into electrical state
+*** Thermal path <<core>>
+**** battery current influences battery thermal model
+**** motor torque, speed, and efficiency influence motor thermal model
+**** battery and motor temperatures influence coolant model
+**** cabin temperature evolves inside HVAC subsystem
+*** Communication rule <<core>>
+**** modules do not call each other directly
+**** modules read from `SimState`
+**** modules return `ModuleOutputs`
+**** only `SimEngine` writes results back into `SimState`
+
+** Core Source Files <<core>>
+*** `[CORE]` `src/vehron/runner.py` <<core>>
+**** user-facing CLI
+*** `[CORE]` `src/vehron/loader.py` <<core>>
+**** YAML loading and unit conversion
+*** `[CORE]` `src/vehron/registry.py` <<core>>
+**** model class lookup and external plugin loading
+*** `[CORE]` `src/vehron/engine.py` <<core>>
+**** main orchestration loop
+*** `[CORE]` `src/vehron/state.py` <<core>>
+**** shared bus and module I/O contract
+*** `[CORE]` `src/vehron/modules/base.py` <<core>>
+**** base contract for all modules
+*** `[CORE]` `src/vehron/constants.py` <<core>>
+**** unit conversions and constants
+*** `[CORE]` `src/vehron/exceptions.py` <<core>>
+**** custom exceptions
+
+** Module Families <<core>>
+*** Driver <<active>>
+**** `[ACTIVE]` `src/vehron/modules/driver/pid_driver.py` <<active>>
+**** `[PLACEHOLDER or helper]` `src/vehron/modules/driver/pedal_map.py` <<placeholder>>
+*** Dynamics <<active>>
+**** `[ACTIVE]` `src/vehron/modules/dynamics/longitudinal.py` <<active>>
+**** `[PLACEHOLDER or helper]` `src/vehron/modules/dynamics/aero.py` <<placeholder>>
+**** `[PLACEHOLDER or helper]` `src/vehron/modules/dynamics/grade.py` <<placeholder>>
+**** `[ACTIVE helper]` `src/vehron/modules/dynamics/tyre/rolling_resistance.py` <<active>>
+**** `[PLACEHOLDER or future]` `src/vehron/modules/dynamics/tyre/pacejka.py` <<placeholder>>
+*** BEV powertrain <<active>>
+**** `[ACTIVE]` reducer <<active>>
+**** `[ACTIVE]` motor analytical <<active>>
+**** `[OPTIONAL]` motor efficiency map <<optional>>
+**** `[ACTIVE]` inverter simple <<active>>
+**** `[ACTIVE]` regen blended brake <<active>>
+*** Battery and energy storage <<active>>
+**** `[EXTENSION]` battery base contract <<extension>>
+**** `[ACTIVE]` `rint.py` <<active>>
+**** `[OPTIONAL]` `ecm_2rc.py` <<optional>>
+**** `[PLACEHOLDER or future]` `pybamm_wrap.py` <<placeholder>>
+**** `[PLACEHOLDER or future]` `supercap.py` <<placeholder>>
+*** HVAC <<active>>
+**** `[ACTIVE]` `cabin_load.py` <<active>>
+**** `[EXTENSION]` `base.py` <<extension>>
+**** `[PLACEHOLDER or future]` `heat_pump.py` <<placeholder>>
+*** Thermal <<active>>
+**** `[ACTIVE]` `battery_thermal.py` <<active>>
+**** `[ACTIVE]` `motor_thermal.py` <<active>>
+**** `[ACTIVE]` `coolant_loop.py` <<active>>
+**** `[PLACEHOLDER or future]` `ice_thermal.py` <<placeholder>>
+*** Other powertrain branches <<placeholder>>
+**** `[PLACEHOLDER or future]` `src/vehron/modules/powertrain/ice/*` <<placeholder>>
+**** `[PLACEHOLDER or future]` `src/vehron/modules/powertrain/hybrid/*` <<placeholder>>
+**** `[PLACEHOLDER or future]` `src/vehron/modules/powertrain/fcev/*` <<placeholder>>
+
+** Configs And Inputs <<data>>
+*** Vehicle archetypes <<data>>
+**** `[ACTIVE]` `src/vehron/archetypes/bev_car_sedan.yaml` <<active>>
+***** current working BEV 4W example
+**** `[PLACEHOLDER or future]` other archetypes <<placeholder>>
+***** `bev_two_wheeler.yaml`
+***** `bev_three_wheeler.yaml`
+***** `bev_bus_city.yaml`
+***** `bev_truck_heavy.yaml`
+***** `ice_car_petrol.yaml`
+***** `hybrid_car_parallel.yaml`
+***** `fcev_bus.yaml`
+*** Testcases <<data>>
+**** `src/vehron/testcases/flat_highway_100kmh.yaml`
+**** `src/vehron/testcases/wltp_class3b_standard.yaml`
+**** `src/vehron/testcases/city_wltp_class3.yaml`
+**** `src/vehron/testcases/urban_stop_start.yaml`
+**** `src/vehron/testcases/ghat_climb_6pct.yaml`
+**** `src/vehron/testcases/indian_drive_cycle.yaml`
+**** thermal ambient variants
+***** `hot_ambient_45c.yaml`
+***** `cold_ambient_minus10c.yaml`
+*** `[DATA]` Drive cycles <<data>>
+**** `data/drive_cycles/wltp_class3b_eupl.csv`
+**** `data/drive_cycles/wltp_class3.csv`
+**** `data/drive_cycles/indian_drive_cycle.csv`
+**** `data/drive_cycles/nedc.csv`
+*** `[DATA]` Motor maps <<data>>
+**** `data/motor_maps/pmsm_160kw.csv`
+**** only used by optional efficiency-map motor model
+*** `[DATA]` Broader future-scope maps <<data>>
+**** `data/engine_maps/petrol_110kw.csv`
+**** `data/fuel_cell_curves/pem_80kw.csv`
+
+** Extension Points <<extension>>
+*** `[EXTENSION]` External battery integration <<extension>>
+**** selected in vehicle YAML with `battery.model: external`
+**** loaded by `registry.py`
+**** must inherit from battery base class
+*** `[EXTENSION]` External HVAC integration <<extension>>
+**** selected in vehicle YAML with `hvac.model: external`
+**** loaded by `registry.py`
+**** must inherit from HVAC base class
+*** `[EXTENSION]` LFP battery-team interface <<extension>>
+**** `src/vehron/interfaces/lfp_model_v2.py`
+**** can import parameter override feedback
+**** can export stable run traces and manifest
+
+** Outputs And Postprocessing <<core>>
+*** `[ACTIVE]` Flat time-series history <<active>>
+**** produced by `SimEngine.run()`
+**** each timestep serialized from `SimState.to_dict()`
+*** `[EXTENSION]` Export hook <<extension>>
+**** `src/vehron/interfaces/lfp_model_v2.py`
+**** creates CSV and manifest for external workflow
+*** `[PLACEHOLDER]` post-processing package <<placeholder>>
+**** `src/vehron/post/reports.py`
+**** `src/vehron/post/timeseries.py`
+**** `src/vehron/post/energy_audit.py`
+**** `src/vehron/post/dashboard.py`
+
+** Tests <<test>>
+*** `[TEST]` Unit tests <<test>>
+**** loader validation and boundary conversion
+**** registry behavior
+**** battery models
+**** motor map path
+**** HVAC behavior
+**** reducer behavior
+**** longitudinal dynamics
+*** `[TEST]` Integration tests <<test>>
+**** BEV flat run
+**** regen city cycle
+**** energy balance
+**** ICE path checks
+**** bus or ghat scenarios
+
+** Active Vs Present <<core>>
+*** `[ACTIVE]` default validated path is the BEV 4W sedan flow <<active>>
+*** `[OPTIONAL]` alternate usable models exist <<optional>>
+**** battery `ecm_2rc`
+**** motor `efficiency_map`
+*** `[EXTENSION]` private external model slots exist <<extension>>
+**** battery slot
+**** HVAC slot
+*** `[PLACEHOLDER]` several files show future scope more than active runtime <<placeholder>>
+**** ICE modules
+**** hybrid modules
+**** FCEV modules
+**** several post-processing files
+
+** Suggested Next Maps <<core>>
+*** runtime sequence map
+**** one simulation tick from target speed to battery state update
+*** file dependency map
+**** which source files import which other source files
+*** implemented vs future capability map
+**** useful for roadmap communication
+
+@endmindmap
