@@ -1,0 +1,53 @@
+\begin{thebibliography}{6}
+\providecommand{\natexlab}[1]{#1}
+\providecommand{\url}[1]{\texttt{#1}}
+\expandafter\ifx\csname urlstyle\endcsname\relax
+  \providecommand{\doi}[1]{doi: #1}\else
+  \providecommand{\doi}{doi: \begingroup \urlstyle{rm}\Url}\fi
+
+\bibitem[{Anonymous}(2024)]{cabreview2024}
+{Anonymous}.
+\newblock A systematic review on modelling the thermal environment of vehicle
+  cabins.
+\newblock \emph{Applied Thermal Engineering}, 257:\penalty0 124142, 2024.
+\newblock \doi{10.1016/j.applthermaleng.2024.124142}.
+
+\bibitem[Hu et~al.(2012)Hu, Li, and Peng]{hu2012ecm}
+Xiaosong Hu, Shengbo~Eben Li, and Huei Peng.
+\newblock A comparative study of equivalent circuit models for {Li-ion}
+  batteries.
+\newblock \emph{Journal of Power Sources}, 198:\penalty0 359--367, 2012.
+\newblock \doi{10.1016/j.jpowsour.2011.10.013}.
+
+\bibitem[Marcos et~al.(2014)Marcos, Pino, Bordons, and Guerra]{marcos2014cabin}
+D.~Marcos, F.~J. Pino, C.~Bordons, and J.~J. Guerra.
+\newblock The development and validation of a thermal model for the cabin of a
+  vehicle.
+\newblock \emph{Applied Thermal Engineering}, 66\penalty0 (1-2):\penalty0
+  646--656, 2014.
+\newblock \doi{10.1016/j.applthermaleng.2014.02.054}.
+
+\bibitem[Noreen et~al.(2019)Noreen, Farooq, and Batool]{noreen2019thermal}
+U.~Noreen, M.~Farooq, and M.~Batool.
+\newblock Thermal management of vehicle cabins, external surfaces, and onboard
+  electronics: An overview.
+\newblock \emph{Engineering}, 5\penalty0 (5):\penalty0 954--969, 2019.
+\newblock \doi{10.1016/j.eng.2019.02.009}.
+
+\bibitem[Su et~al.(2019)Su, Lin, Wang, Li, Coffie-Ken, and Xie]{su2019ecm}
+Jie Su, Maosong Lin, Shunli Wang, Jin Li, James Coffie-Ken, and Fei Xie.
+\newblock An equivalent circuit model analysis for the lithium-ion battery pack
+  in pure electric vehicles.
+\newblock \emph{Measurement and Control}, 52\penalty0 (3-4):\penalty0 193--201,
+  2019.
+\newblock \doi{10.1177/0020294019827338}.
+
+\bibitem[Torregrosa-Jaime et~al.(2015)Torregrosa-Jaime, Bjurling, Corberan, and
+  Di~Sciullo]{torregrosa2015cabin}
+B.~Torregrosa-Jaime, F.~Bjurling, J.~M. Corberan, and F.~Di~Sciullo.
+\newblock Transient thermal model of a vehicle's cabin validated under variable
+  ambient conditions.
+\newblock \emph{Applied Thermal Engineering}, 75:\penalty0 45--53, 2015.
+\newblock \doi{10.1016/j.applthermaleng.2014.05.074}.
+
+\end{thebibliography}

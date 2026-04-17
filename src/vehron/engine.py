@@ -5,7 +5,7 @@ from __future__ import annotations
 import csv
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Any
+from typing import Any, Callable
 
 from vehron.constants import DEFAULT_DT_S
 from vehron.registry import (
@@ -211,7 +211,17 @@ class SimEngine:
             return power_kw * 1000.0
         return 0.0
 
-    def run(self) -> SimulationResult:
+    def collect_module_states(self) -> dict[str, dict[str, Any]]:
+        """Return current module internal states keyed by module name."""
+        return {
+            name: module.get_state()
+            for name, module in self.modules.items()
+        }
+
+    def run(
+        self,
+        observer: Callable[[dict[str, Any], dict[str, dict[str, Any]]], None] | None = None,
+    ) -> SimulationResult:
         history: list[dict[str, Any]] = []
         active_modules = list(self.modules.items())
         n_steps = int(self.max_duration_s / self.dt_s) + 1
@@ -251,7 +261,10 @@ class SimEngine:
             self.sim_state.t = (step_idx + 1) * self.dt_s
             self.sim_state.step_count = step_idx + 1
             self._update_energy_accumulators(self.dt_s)
-            history.append(self.sim_state.to_dict())
+            row = self.sim_state.to_dict()
+            history.append(row)
+            if observer is not None:
+                observer(row, self.collect_module_states())
 
             if self._termination_reached():
                 break
