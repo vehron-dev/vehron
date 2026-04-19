@@ -31,15 +31,16 @@ The current repository is intentionally narrow. VEHRON v1 should be understood
 as a BEV-focused research software package, not as a general multi-powertrain
 vehicle platform. The supported path today is CLI-driven, YAML-configured,
 forward-time longitudinal simulation for battery-electric vehicles using either
-parametric routes or time-indexed speed-trace drive cycles. The software writes
-reproducible case packages including summary metadata, time series, copied and
-resolved inputs, and standard plots.
+parametric routes or drive-cycle CSV input in the public `time_s,speed_kmh`
+format. The software writes reproducible case packages including summary
+metadata, time series, copied and resolved inputs, and standard plots.
 
 VEHRON is designed to be reusable within that bounded scope. It includes
-reference in-repo battery models, a reference HVAC model, and documented slots
-for loading custom battery or HVAC models from external Python files at runtime.
-This lets teams keep proprietary subsystem models outside the public repository
-while still running them inside a transparent vehicle-level simulation loop.
+reference in-repo battery and HVAC models, YAML-configured auxiliary electrical
+loads, and documented slots for loading custom battery or HVAC models from
+external Python files at runtime. This lets teams keep proprietary subsystem
+models outside the public repository while still running them inside a
+transparent vehicle-level simulation loop.
 
 # Statement of Need
 
@@ -56,7 +57,8 @@ VEHRON targets that use case. It is intended for:
 - early-stage BEV sizing and trade studies
 - duty-cycle comparison under different operating conditions
 - generation of battery stress histories for later downstream analysis
-- subsystem sensitivity checks around battery, HVAC, and auxiliary loads
+- subsystem sensitivity checks around battery, HVAC, and auxiliary electrical
+  loads
 - integration of private battery or HVAC models into an otherwise open vehicle
   simulation workflow
 
@@ -154,6 +156,8 @@ custom drive-cycle or external-model studies. The repository now includes:
 - a getting-started guide
 - runnable custom drive-cycle examples using `time_s,speed_kmh` CSV input
 - an external battery-slot example
+- an external HVAC slot contract and template
+- YAML-configured auxiliary electrical parasitics through `aux_loads`
 - packaged example resources accessible through `vehron list-examples` and
   `vehron run-example`
 
@@ -173,9 +177,12 @@ VEHRON is structured as a reusable research kernel within a deliberately narrow
 scope. Outsiders can:
 
 - define a new BEV using YAML configuration
-- run a new duty cycle using a simple CSV speed trace
-- swap in a custom battery model through the external battery slot
-- swap in a custom HVAC model through the external HVAC slot
+- run a new duty cycle using a simple `time_s,speed_kmh` CSV speed trace
+- swap in a custom battery model through the external battery slot using a
+  local Python file
+- swap in a custom HVAC model through the external HVAC slot using a local
+  Python file
+- change auxiliary electrical parasitics through YAML `aux_loads` parameters
 - inspect reproducible case-package outputs for downstream analysis
 
 The public reuse story is intentionally bounded. VEHRON should not currently be

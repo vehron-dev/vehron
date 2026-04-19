@@ -28,8 +28,11 @@ The active supported path today is:
 - battery-electric vehicles (`powertrain: bev`)
 - forward-time longitudinal simulation
 - YAML-defined vehicles and testcases
-- parametric routes and speed-trace drive cycles
-- configurable battery, HVAC, motor, reducer, regen, and thermal trend models
+- parametric routes and drive-cycle CSV input using `time_s,speed_kmh`
+- configurable in-repo battery, HVAC, motor, reducer, regen, auxiliary-load,
+  and thermal-trend models
+- external battery and HVAC models loaded from local Python files through
+  documented slot interfaces
 - reproducible case package outputs
 
 VEHRON should **not** currently be interpreted as:
@@ -51,11 +54,12 @@ platform.
 | Powertrain scope | BEV active path | non-BEV code scaffolding present in repo | ICE / hybrid / FCEV public support |
 | Vehicle classes | BEV sedan example and BEV-style studies | placeholder archetypes in repo | broad validated archetype library |
 | Route input | parametric route, `time_s,speed_kmh` drive-cycle CSV | fixed route abstractions inside engine | GPS / lat-lon / elevation route ingestion |
-| Battery models | `rint`, `ecm_2rc`, external battery slot | advisory-driven charge-stop-resume control | degradation-aware built-in battery models |
-| HVAC models | `cabin_load`, external HVAC slot | low-order lumped thermal behavior | high-fidelity AC / heat-pump runtime models |
+| Battery models | `rint`, `ecm_2rc`, external battery slot via local Python file | advisory-driven charge-stop-resume control | degradation-aware built-in battery models |
+| HVAC models | `cabin_load`, external HVAC slot via local Python file | low-order lumped thermal behavior | high-fidelity AC / heat-pump runtime models |
+| Auxiliary and parasitic loads | YAML-configured `aux_loads` electrical parasitics | current model family is parameterized rather than plugin-based | broader parasitics framework |
 | Thermal modeling | battery, motor, coolant trend states | low-order coupled trends only | detailed thermal network calibration |
 | Outputs | case package, summary, timeseries, plots | current output schema still evolving | richer comparison/report workflows |
-| Public reuse story | CLI-driven BEV studies, custom YAMLs, external battery/HVAC models | Python API use via core classes | larger stable plugin ecosystem |
+| Public reuse story | CLI-driven BEV studies, custom YAMLs, custom drive-cycle CSVs, external battery/HVAC Python models | Python API use via core classes | larger stable plugin ecosystem |
 
 See also:
 
@@ -125,7 +129,7 @@ The current pipeline supports a complete BEV simulation loop with these active m
 Battery slot architecture:
 
 - VEHRON keeps reference in-repo battery models: `RintBatteryModel` and `Ecm2RcBatteryModel`
-- Third-party battery models can be hot-swapped into the battery slot
+- Third-party battery models can be loaded into the battery slot from a local Python file
 - Private battery code does **not** need to live in this repository
 - External battery models only need to implement the VEHRON battery slot interface
 - The battery slot contract is defined by `BatteryModelBase`
@@ -135,7 +139,7 @@ Battery slot architecture:
 HVAC slot architecture:
 
 - VEHRON keeps a reference in-repo HVAC model: `CabinLoadModel`
-- Third-party HVAC or AC models can be hot-swapped into the HVAC slot
+- Third-party HVAC or AC models can be loaded into the HVAC slot from a local Python file
 - Private HVAC code does **not** need to live in this repository
 - External HVAC models only need to implement the VEHRON HVAC slot interface
 - The HVAC slot contract is defined by `HvacModelBase`
