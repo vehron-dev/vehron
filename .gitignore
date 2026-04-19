@@ -15,6 +15,7 @@ dist/
 # Local run outputs
 output/
 docs/output/
+data/
 
 # Local editor and agent files
 .codex
