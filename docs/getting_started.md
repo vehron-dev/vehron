@@ -18,6 +18,13 @@ From the repository root:
 ```bash
 python3 -m venv .venv
 source .venv/bin/activate
+pip install .
+```
+
+If you intend to modify VEHRON itself rather than just evaluate it, use an
+editable install instead:
+
+```bash
 pip install -e .
 ```
 

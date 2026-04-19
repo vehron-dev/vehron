@@ -1,17 +1,20 @@
 # Paper Assets
 
-This directory contains a LaTeX manuscript, bibliography, and figures for the
-current VEHRON software paper workflow.
+This directory now contains figure assets and a small helper script used by the
+VEHRON paper workflow.
 
-Files:
+The actual JOSS submission files live at the repository root:
 
-- `vehron_joss_manuscript.tex`: main LaTeX source
-- `vehron_refs.bib`: bibliography
-- `figures/`: figure assets copied from recent VEHRON case packages
+- `paper.md`
+- `paper.bib`
 
-Important note:
+The benchmark figures can be regenerated locally from existing case outputs
+with:
 
-- JOSS formally requires `paper.md` and `paper.bib` in Markdown-based format.
-- This repository now also includes root-level `paper.md` and `paper.bib`
-  files for JOSS-style submission packaging.
-- The LaTeX manuscript here remains a richer preprint-style companion.
+```bash
+python paper/generate_figures.py
+```
+
+The script looks for the latest local highway and city benchmark case packages
+under `output/cases/` and rewrites the PNG assets in `paper/figures/` using a
+paper-oriented plotting style.

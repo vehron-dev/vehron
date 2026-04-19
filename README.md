@@ -19,6 +19,35 @@ The guiding idea is simple:
 This repository is currently in an active build-up phase with a working
 BEV-focused simulation path and fixed multi-rate scheduling support.
 
+If you are arriving here as an outsider, treat VEHRON as an honest public WIP:
+the BEV path is usable and tested, but the broader repository still contains
+scaffolding and future-scope placeholders that are not part of the supported
+public surface.
+
+## Install
+
+For users evaluating VEHRON from a repository checkout:
+
+```bash
+python3 -m venv .venv
+source .venv/bin/activate
+pip install .
+```
+
+For contributors working on the codebase itself:
+
+```bash
+python3 -m venv .venv
+source .venv/bin/activate
+pip install -e .
+```
+
+Then sanity-check the CLI:
+
+```bash
+vehron --help
+```
+
 ## Current Scope
 
 VEHRON v1 should be understood as a **BEV-focused research software package**.

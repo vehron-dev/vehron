@@ -25,6 +25,14 @@ CODEX.md
 docs/VEHRON_JOSS_V1_Week_Plan.docx
 docs/VEHRON_Progress_Report.docx
 
+# Local paper build artifacts
+paper.pdf
+paper_readable.tex
+paper_readable.pdf
+paper_readable.aux
+paper_readable.log
+paper_readable.out
+
 # Keep packaged runtime data tracked
 !src/vehron/data/
 !src/vehron/data/drive_cycles/
