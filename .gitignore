@@ -1,0 +1,30 @@
+# Python caches and build artifacts
+__pycache__/
+*.py[cod]
+*.so
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+
+# Virtual environments and local packaging output
+.venv/
+build/
+dist/
+*.egg-info/
+
+# Local run outputs
+output/
+docs/output/
+
+# Local editor and agent files
+.codex
+CODEX.md
+
+# Local planning artifacts
+docs/VEHRON_JOSS_V1_Week_Plan.docx
+docs/VEHRON_Progress_Report.docx
+
+# Keep packaged runtime data tracked
+!src/vehron/data/
+!src/vehron/data/drive_cycles/
+!src/vehron/data/drive_cycles/*.csv

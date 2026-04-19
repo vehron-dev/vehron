@@ -10,13 +10,16 @@ from typing import Any
 import click
 
 from vehron.engine import SimEngine
-from vehron.interfaces.lfp_model_v2 import (
-    apply_lfp_model_v2_feedback,
-    export_lfp_model_v2_hook,
-)
 from vehron.loader import ConfigLoader
 from vehron.post.dashboard import generate_case_plots
 from vehron.post.reports import make_case_name, write_case_package
+from vehron.resources import (
+    list_packaged_archetypes,
+    list_packaged_testcases,
+    package_data_root,
+    packaged_archetype_path,
+    packaged_testcase_path,
+)
 
 
 @click.group()
@@ -24,23 +27,30 @@ def cli() -> None:
     """VEHRON command-line interface."""
 
 
+@cli.command("list-examples")
+def list_examples_cmd() -> None:
+    """List packaged archetypes and testcases that can be used with run-example."""
+    click.echo("Packaged vehicle archetypes:")
+    for name in list_packaged_archetypes():
+        click.echo(f"- {name}")
+    click.echo("")
+    click.echo("Packaged testcases:")
+    for name in list_packaged_testcases():
+        click.echo(f"- {name}")
+
+
 @cli.command("run")
 @click.option("--vehicle", "vehicle_path", required=True, type=click.Path(exists=True, dir_okay=False, path_type=Path))
 @click.option("--testcase", "testcase_path", required=True, type=click.Path(exists=True, dir_okay=False, path_type=Path))
-@click.option("--lfp-feedback-file", "lfp_feedback_file", required=False, type=click.Path(exists=True, dir_okay=False, path_type=Path))
-@click.option("--lfp-export-dir", "lfp_export_dir", required=False, type=click.Path(file_okay=False, path_type=Path))
 def run_cmd(
     vehicle_path: Path,
     testcase_path: Path,
-    lfp_feedback_file: Path | None,
-    lfp_export_dir: Path | None,
 ) -> None:
     """Run a simulation and print a short summary."""
     loader = ConfigLoader(project_root=Path.cwd())
     vehicle_source = vehicle_path.read_text(encoding="utf-8")
     testcase_source = testcase_path.read_text(encoding="utf-8")
     vehicle_cfg, testcase_cfg = loader.load(vehicle_path, testcase_path)
-    vehicle_cfg, feedback_applied = apply_lfp_model_v2_feedback(vehicle_cfg, lfp_feedback_file)
     engine = SimEngine(vehicle_cfg, testcase_cfg, project_root=Path.cwd())
     click.echo(_render_spec_sheet(vehicle_cfg, testcase_cfg))
     result = engine.run(observer=_live_progress_reporter)
@@ -66,16 +76,52 @@ def run_cmd(
     click.echo(f"plots_generated={len(plot_paths)}")
     click.echo(f"idle_time_s={summary['idle_time_s']:.2f}")
 
-    if lfp_export_dir is not None:
-        out_dir = export_lfp_model_v2_hook(
-            result=result,
-            vehicle_cfg=vehicle_cfg,
-            testcase_cfg=testcase_cfg,
-            export_dir=lfp_export_dir,
-            feedback_applied=feedback_applied,
-        )
-        click.echo(f"lfp_model_v2_export={out_dir}")
 
+@cli.command("run-example")
+@click.option("--vehicle", "vehicle_name", required=True, type=str)
+@click.option("--testcase", "testcase_name", required=True, type=str)
+def run_example_cmd(vehicle_name: str, testcase_name: str) -> None:
+    """Run a packaged example vehicle and testcase."""
+    project_root = package_data_root()
+    vehicle_path = packaged_archetype_path(vehicle_name)
+    testcase_path = packaged_testcase_path(testcase_name)
+    _run_case(
+        project_root=project_root,
+        vehicle_path=vehicle_path,
+        testcase_path=testcase_path,
+    )
+
+
+def _run_case(project_root: Path, vehicle_path: Path, testcase_path: Path) -> None:
+    """Execute a VEHRON run for the given inputs and write the case package."""
+    loader = ConfigLoader(project_root=project_root)
+    vehicle_source = vehicle_path.read_text(encoding="utf-8")
+    testcase_source = testcase_path.read_text(encoding="utf-8")
+    vehicle_cfg, testcase_cfg = loader.load(vehicle_path, testcase_path)
+    engine = SimEngine(vehicle_cfg, testcase_cfg, project_root=project_root)
+    click.echo(_render_spec_sheet(vehicle_cfg, testcase_cfg))
+    result = engine.run(observer=_live_progress_reporter)
+
+    final = result.final_state
+    click.echo(f"steps={final.step_count}")
+    click.echo(f"distance_km={final.distance_m / 1000.0:.3f}")
+    click.echo(f"final_soc={final.soc:.4f}")
+    click.echo(f"energy_wh={final.total_energy_consumed_wh():.2f}")
+
+    case_root = Path.cwd() / "output" / "cases"
+    case_dir = case_root / make_case_name(vehicle_cfg, testcase_cfg, when=datetime.now())
+    summary = write_case_package(
+        case_dir=case_dir,
+        result=result,
+        vehicle_cfg=vehicle_cfg,
+        testcase_cfg=testcase_cfg,
+        vehicle_source=vehicle_source,
+        testcase_source=testcase_source,
+    )
+    plot_paths = generate_case_plots(case_dir / "plots", result.time_series)
+    click.echo(f"case_dir={case_dir}")
+    click.echo(f"plots_generated={len(plot_paths)}")
+    click.echo(f"idle_time_s={summary['idle_time_s']:.2f}")
 
 def _render_spec_sheet(vehicle_cfg: dict[str, Any], testcase_cfg: dict[str, Any]) -> str:
     vehicle = vehicle_cfg.get("vehicle", {})

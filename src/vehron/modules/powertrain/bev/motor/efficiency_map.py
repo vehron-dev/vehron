@@ -6,6 +6,7 @@ import csv
 from pathlib import Path
 
 from vehron.modules.powertrain.bev.motor.analytical import AnalyticalMotorModel
+from vehron.resources import resolve_runtime_path
 
 
 class EfficiencyMapMotorModel(AnalyticalMotorModel):
@@ -15,7 +16,8 @@ class EfficiencyMapMotorModel(AnalyticalMotorModel):
 
         map_file = self.params.get("map_file")
         if map_file:
-            path = Path(map_file)
+            project_root = Path(self.params.get("project_root", Path.cwd()))
+            path = resolve_runtime_path(project_root, Path(map_file))
             if path.exists():
                 with path.open("r", encoding="utf-8") as handle:
                     reader = csv.reader(line for line in handle if not line.startswith("#"))

@@ -246,19 +246,11 @@
   - selected in vehicle YAML with `hvac.model: external`
   - loaded by `registry.py`
   - must inherit from HVAC base class
-- `[EXTENSION]` LFP battery-team interface
-  - `src/vehron/interfaces/lfp_model_v2.py`
-  - can import parameter override feedback
-  - can export stable run traces and manifest
-
 ## Outputs And Postprocessing
 
 - `[ACTIVE]` Flat time-series history
   - produced by `SimEngine.run()`
   - each timestep serialized from `SimState.to_dict()`
-- `[EXTENSION]` Export hook
-  - `src/vehron/interfaces/lfp_model_v2.py`
-  - creates CSV and manifest for external workflow
 - `[PLACEHOLDER]` post-processing package
   - `src/vehron/post/reports.py`
   - `src/vehron/post/timeseries.py`

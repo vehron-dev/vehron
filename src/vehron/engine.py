@@ -13,6 +13,7 @@ from vehron.registry import (
     get_hvac_module_class,
     get_module_class,
 )
+from vehron.resources import resolve_runtime_path
 from vehron.state import ModuleInputs, ModuleOutputs, SimState
 
 
@@ -69,7 +70,7 @@ class SimEngine:
 
         path = Path(cycle_file)
         if not path.is_absolute():
-            path = self.project_root / path
+            path = resolve_runtime_path(self.project_root, path)
 
         profile: list[tuple[float, float]] = []
         with path.open("r", encoding="utf-8") as handle:
@@ -150,6 +151,7 @@ class SimEngine:
             "motor": motor_cls({
                 **self.vehicle_cfg["motor"],
                 "wheel_radius_m": vehicle["wheel_radius_m"],
+                "project_root": self.project_root,
             }),
             "inverter": inverter_cls({"efficiency": 0.97}),
             "regen": regen_cls({

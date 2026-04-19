@@ -16,7 +16,54 @@ The guiding idea is simple:
 - The **physics** lives in modules.
 - Vehicle and experiment definitions come from **configuration files**.
 
-This repository is currently in an active build-up phase with a working BEV 4W pipeline and fixed multi-rate scheduling support.
+This repository is currently in an active build-up phase with a working
+BEV-focused simulation path and fixed multi-rate scheduling support.
+
+## Current Scope
+
+VEHRON v1 should be understood as a **BEV-focused research software package**.
+
+The active supported path today is:
+
+- battery-electric vehicles (`powertrain: bev`)
+- forward-time longitudinal simulation
+- YAML-defined vehicles and testcases
+- parametric routes and speed-trace drive cycles
+- configurable battery, HVAC, motor, reducer, regen, and thermal trend models
+- reproducible case package outputs
+
+VEHRON should **not** currently be interpreted as:
+
+- a general multi-powertrain vehicle simulator
+- a battery degradation inference package
+- a high-fidelity electrochemical battery solver
+- a GPS/lat-lon route replay framework
+- a fully validated production-grade vehicle model
+
+If you are evaluating VEHRON for reuse, treat it as a modular BEV simulation
+kernel with documented extension points, not as a finished broad vehicle
+platform.
+
+## Capability Matrix
+
+| Area | Supported Today | Experimental / Partial | Planned / Not Yet Supported |
+| --- | --- | --- | --- |
+| Powertrain scope | BEV active path | non-BEV code scaffolding present in repo | ICE / hybrid / FCEV public support |
+| Vehicle classes | BEV sedan example and BEV-style studies | placeholder archetypes in repo | broad validated archetype library |
+| Route input | parametric route, `time_s,speed_kmh` drive-cycle CSV | fixed route abstractions inside engine | GPS / lat-lon / elevation route ingestion |
+| Battery models | `rint`, `ecm_2rc`, external battery slot | advisory-driven charge-stop-resume control | degradation-aware built-in battery models |
+| HVAC models | `cabin_load`, external HVAC slot | low-order lumped thermal behavior | high-fidelity AC / heat-pump runtime models |
+| Thermal modeling | battery, motor, coolant trend states | low-order coupled trends only | detailed thermal network calibration |
+| Outputs | case package, summary, timeseries, plots | current output schema still evolving | richer comparison/report workflows |
+| Public reuse story | CLI-driven BEV studies, custom YAMLs, external battery/HVAC models | Python API use via core classes | larger stable plugin ecosystem |
+
+See also:
+
+- [Public Interface](/home/sn/02_git/vehron/docs/public_interface.md)
+- [Getting Started](/home/sn/02_git/vehron/docs/getting_started.md)
+- [Validation and Limitations](/home/sn/02_git/vehron/docs/validation.md)
+- [Reference Benchmarks](/home/sn/02_git/vehron/docs/benchmarks.md)
+- [YAML Reference](/home/sn/02_git/vehron/docs/yaml_reference.md)
 
 ## License
 
@@ -33,11 +80,9 @@ The aim is:
 - to preserve a commons around the simulator as it grows
 - to keep long-term stewardship clear as the project evolves
 
-Contributor policy:
+Contributor guidance:
 
-- non-trivial contributions are expected to be made under the VEHRON CLA
 - see [CONTRIBUTING.md](/home/sn/02_git/vehron/CONTRIBUTING.md)
-- see [CLA.md](/home/sn/02_git/vehron/CLA.md)
 
 ---
 
@@ -55,8 +100,9 @@ VEHRON is designed as a **component-based simulator**, not a monolithic model. Y
 
 ### Supported focus today
 
-- Primary: **BEV 4W** (working)
-- Planned next: **BEV 2W** using the same core architecture with archetype-specific parameters
+- Primary: **BEV active path** (`powertrain: bev`)
+- Public emphasis: reproducible BEV duty-cycle simulation rather than broad powertrain coverage
+- Planned next: broader archetype and route support after the BEV baseline is better documented and validated
 
 ---
 
@@ -349,30 +395,6 @@ vehron run \
 
 To evaluate any vehicle on WLTP, keep the same testcase and swap `--vehicle`.
 
-### LFP_model_v2 interface hooks
-
-Export VEHRON traces for the battery team model:
-
-```bash
-vehron run \
-  --vehicle src/vehron/archetypes/bev_car_sedan.yaml \
-  --testcase src/vehron/testcases/wltp_class3b_standard.yaml \
-  --lfp-export-dir output/interop/LFP_model_v2/wltp_run_001
-```
-
-Optional feedback import before run:
-
-```bash
-vehron run \
-  --vehicle src/vehron/archetypes/bev_car_sedan.yaml \
-  --testcase src/vehron/testcases/wltp_class3b_standard.yaml \
-  --lfp-feedback-file input/lfp_model_v2_feedback.json \
-  --lfp-export-dir output/interop/LFP_model_v2/wltp_run_002
-```
-
-Interface contract details:
-
-- [docs/lfp_model_v2_interface.md](/home/sn/02_git/vehron/docs/lfp_model_v2_interface.md)
 - [docs/battery_slot_interface.md](/home/sn/02_git/vehron/docs/battery_slot_interface.md)
 
 ### Private battery model hook
@@ -454,15 +476,6 @@ battery:
 vehron run \
   --vehicle path/to/vehicle_with_private_battery.yaml \
   --testcase src/vehron/testcases/wltp_class3b_standard.yaml
-```
-
-6. If the battery team also wants VEHRON mission traces for offline analysis, export them:
-
-```bash
-vehron run \
-  --vehicle path/to/vehicle_with_private_battery.yaml \
-  --testcase src/vehron/testcases/wltp_class3b_standard.yaml \
-  --lfp-export-dir output/interop/LFP_model_v2/wltp_run_001
 ```
 
 Recommended handoff from the battery team:

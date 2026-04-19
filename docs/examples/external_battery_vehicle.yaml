@@ -1,0 +1,65 @@
+vehicle:
+  name: "City EV Sedan External Battery Example"
+  archetype: car
+  powertrain: bev
+  mass_kg: 1450
+  payload_kg: 120
+  frontal_area_m2: 2.25
+  drag_coefficient: 0.29
+  wheel_radius_m: 0.316
+  primary_reduction_ratio: 3.45
+  secondary_reduction_ratio: 2.85
+  transmission_efficiency: 0.96
+  drivetrain_efficiency: 0.94
+
+battery:
+  model: external
+  external_module_path: docs/examples/private_battery_stub.py
+  external_class_name: PrivateBatteryModel
+  capacity_kwh: 55.0
+  nominal_voltage_v: 360
+  internal_resistance_ohm: 0.08
+  thermal_mass_kjk: 28.0
+  max_charge_rate_c: 2.0
+  max_discharge_rate_c: 5.0
+  soc_init: 0.98
+  soc_min: 0.05
+  soc_max: 0.98
+  max_charge_power_w: 25000.0
+  resume_charge_soc: 0.80
+  trigger_charge_soc: 0.18
+
+motor:
+  model: analytical
+  map_file: data/motor_maps/pmsm_160kw.csv
+  peak_power_kw: 160
+  peak_torque_nm: 320
+  max_speed_rpm: 14000
+  base_efficiency: 0.93
+
+tyre:
+  model: rolling_resistance
+  rolling_resistance_coeff: 0.009
+  tyre_size: "215/55R17"
+
+hvac:
+  model: cabin_load
+  rated_power_kw: 4.5
+  cabin_volume_m3: 2.8
+  cop_cooling: 2.5
+  cop_heating: 2.0
+  cabin_setpoint_c: 22
+  interior_thermal_mass_kjk: 75.0
+  body_ua_wk: 120.0
+  speed_ua_per_ms_wk: 3.0
+  glazed_area_m2: 2.2
+  solar_transmittance: 0.55
+  fresh_air_ach: 8.0
+  occupant_sensible_w: 75.0
+  control_tau_s: 240.0
+
+aux_loads:
+  headlights_w: 80
+  adas_w: 150
+  infotainment_w: 60
+  power_steering_w: 100

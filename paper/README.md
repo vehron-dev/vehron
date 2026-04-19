@@ -12,5 +12,6 @@ Files:
 Important note:
 
 - JOSS formally requires `paper.md` and `paper.bib` in Markdown-based format.
-- The LaTeX manuscript here is a richer preprint-style companion that can be
-  adapted into the exact JOSS submission format later.
+- This repository now also includes root-level `paper.md` and `paper.bib`
+  files for JOSS-style submission packaging.
+- The LaTeX manuscript here remains a richer preprint-style companion.
