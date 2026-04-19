@@ -19,6 +19,15 @@ class BatteryModelBase(BaseModule, ABC):
 
     SLOT_NAME: str = "battery"
     INTERFACE_VERSION: str = "1.0"
+    ADVISORY_KEYS: tuple[str, ...] = (
+        "charge_recommended",
+        "charge_required",
+        "max_charge_power_w",
+        "max_discharge_power_w",
+        "preferred_charge_power_w",
+        "resume_charge_soc",
+        "trigger_charge_soc",
+    )
 
     def resolve_power_inputs(
         self,
@@ -44,4 +53,19 @@ class BatteryModelBase(BaseModule, ABC):
                 - float(sim_state.p_regen_w)
                 - p_external_charge_w
             ),
+        }
+
+    def resolve_charge_advisories(self) -> dict[str, float | bool]:
+        """Return standardized battery advisories from module-private state.
+
+        External battery models may expose these keys through ``get_state()`` or
+        directly in ``self._state``. The engine uses them as soft or hard hints
+        for mission-level charging control without forcing battery physics and
+        routing policy into the same module.
+        """
+        state = self.get_state()
+        return {
+            key: state[key]
+            for key in self.ADVISORY_KEYS
+            if key in state
         }

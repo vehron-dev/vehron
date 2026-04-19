@@ -1,4 +1,4 @@
-# Copyright (c) 2026 Subramanyam Natarajan
+# Copyright (C) 2026 Subramanyam Natarajan
 # SPDX-License-Identifier: AGPL-3.0-only
 
 """Two-RC equivalent-circuit battery model for BEV simulation."""

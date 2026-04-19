@@ -36,6 +36,13 @@ class SimEngine:
         self.max_duration_s = float(testcase_cfg["simulation"]["max_duration_s"])
         self._battery_charge_sum_w = 0.0
         self._battery_charge_samples = 0
+        self._mission_state = {
+            "auto_charge_active": False,
+            "charge_stop_requested": False,
+            "charge_sessions": 0,
+            "charge_time_s": 0.0,
+        }
+        self._auto_charge_cfg = self._resolve_auto_charge_cfg()
 
         self._setup_initial_state()
         self._build_modules()
@@ -54,6 +61,7 @@ class SimEngine:
         self.sim_state.target_v_ms = float(internal.get("target_speed_ms", 0.0))
         self.sim_state.grade_rad = float(internal.get("grade_rad", 0.0))
         self.sim_state.soc = float(battery["soc_init"])
+        self._base_target_v_ms = self.sim_state.target_v_ms
 
         self.target_distance_m = float(route["distance_km"]) * 1000.0
         self.stop_on_soc_min = bool(self.testcase_cfg["simulation"].get("stop_on_soc_min", True))
@@ -62,6 +70,20 @@ class SimEngine:
         self._drive_cycle_profile: list[tuple[float, float]] | None = None
         if route.get("mode") == "drive_cycle":
             self._drive_cycle_profile = self._load_drive_cycle(route.get("drive_cycle_file"))
+
+    def _resolve_auto_charge_cfg(self) -> dict[str, float | bool]:
+        raw = self.testcase_cfg.get("simulation", {}).get("auto_charge", {})
+        if not isinstance(raw, dict):
+            raw = {}
+        enabled = bool(raw.get("enabled", False))
+        return {
+            "enabled": enabled,
+            "trigger_soc": float(raw.get("trigger_soc", 0.2)),
+            "resume_soc": float(raw.get("resume_soc", 0.8)),
+            "charger_power_kw": float(raw.get("charger_power_kw", 0.0)),
+            "stop_speed_threshold_ms": float(raw.get("stop_speed_threshold_ms", 0.3)),
+            "max_charge_stops": int(raw.get("max_charge_stops", 100)),
+        }
 
     def _load_drive_cycle(self, cycle_file: str | None) -> list[tuple[float, float]]:
         if not cycle_file:
@@ -194,11 +216,15 @@ class SimEngine:
             return True
         if self.sim_state.t >= self.max_duration_s:
             return True
-        if self.stop_on_soc_min and self.sim_state.soc <= self.soc_min:
+        if (
+            self.stop_on_soc_min
+            and self.sim_state.soc <= self.soc_min
+            and not bool(self._auto_charge_cfg.get("enabled", False))
+        ):
             return True
         return False
 
-    def _external_charging_power_w(self, t_s: float) -> float:
+    def _scheduled_external_charging_power_w(self, t_s: float) -> float:
         sim_cfg = self.testcase_cfg["simulation"]
         power_kw = float(sim_cfg.get("external_charging_power_kw", 0.0))
         start_s = float(sim_cfg.get("external_charging_start_s", 0.0))
@@ -211,12 +237,109 @@ class SimEngine:
             return power_kw * 1000.0
         return 0.0
 
+    def _battery_advisories(self) -> dict[str, float | bool]:
+        battery = self.modules.get("battery")
+        if battery is None:
+            return {}
+        if hasattr(battery, "resolve_charge_advisories"):
+            advisories = battery.resolve_charge_advisories()
+            if isinstance(advisories, dict):
+                return advisories
+        return {}
+
+    def _charge_trigger_soc(self) -> float:
+        advisories = self._battery_advisories()
+        advisory_trigger = advisories.get("trigger_charge_soc")
+        if isinstance(advisory_trigger, (int, float)):
+            return float(advisory_trigger)
+        return float(self._auto_charge_cfg["trigger_soc"])
+
+    def _charge_resume_soc(self) -> float:
+        advisories = self._battery_advisories()
+        advisory_resume = advisories.get("resume_charge_soc")
+        if isinstance(advisory_resume, (int, float)):
+            return float(advisory_resume)
+        return float(self._auto_charge_cfg["resume_soc"])
+
+    def _update_charge_request(self) -> None:
+        if not bool(self._auto_charge_cfg.get("enabled", False)):
+            return
+
+        advisories = self._battery_advisories()
+        charge_required = bool(advisories.get("charge_required", False))
+        charge_recommended = bool(advisories.get("charge_recommended", False))
+        trigger_soc = self._charge_trigger_soc()
+
+        should_request = (
+            charge_required
+            or charge_recommended
+            or self.sim_state.soc <= trigger_soc
+        )
+        if should_request and not self._mission_state["auto_charge_active"]:
+            self._mission_state["charge_stop_requested"] = True
+
+    def _apply_mission_speed_policy(self) -> None:
+        if self._mission_state["charge_stop_requested"] or self._mission_state["auto_charge_active"]:
+            self.sim_state.target_v_ms = 0.0
+            return
+        if self.testcase_cfg["route"].get("mode") != "drive_cycle":
+            self.sim_state.target_v_ms = self._base_target_v_ms
+
+    def _auto_charge_power_w(self) -> float:
+        if not self._mission_state["auto_charge_active"]:
+            return 0.0
+
+        advisories = self._battery_advisories()
+        charger_power_w = float(self._auto_charge_cfg["charger_power_kw"]) * 1000.0
+        if charger_power_w <= 0.0:
+            return 0.0
+
+        max_charge_power = advisories.get("max_charge_power_w")
+        preferred_charge_power = advisories.get("preferred_charge_power_w")
+        if isinstance(max_charge_power, (int, float)):
+            charger_power_w = min(charger_power_w, float(max_charge_power))
+        if isinstance(preferred_charge_power, (int, float)):
+            charger_power_w = min(charger_power_w, float(preferred_charge_power))
+        return max(charger_power_w, 0.0)
+
+    def _update_charging_state(self) -> None:
+        if not bool(self._auto_charge_cfg.get("enabled", False)):
+            return
+
+        stop_speed_threshold_ms = float(self._auto_charge_cfg["stop_speed_threshold_ms"])
+        if (
+            self._mission_state["charge_stop_requested"]
+            and not self._mission_state["auto_charge_active"]
+            and self.sim_state.v_ms <= stop_speed_threshold_ms
+        ):
+            max_charge_stops = int(self._auto_charge_cfg["max_charge_stops"])
+            if self._mission_state["charge_sessions"] < max_charge_stops:
+                self._mission_state["auto_charge_active"] = True
+                self._mission_state["charge_stop_requested"] = False
+                self._mission_state["charge_sessions"] += 1
+
+        if self._mission_state["auto_charge_active"]:
+            self._mission_state["charge_time_s"] += self.dt_s
+            resume_soc = self._charge_resume_soc()
+            if self.sim_state.soc >= resume_soc:
+                self._mission_state["auto_charge_active"] = False
+
+        if (
+            self.stop_on_soc_min
+            and self.sim_state.soc <= self.soc_min
+            and not self._mission_state["auto_charge_active"]
+            and self._auto_charge_power_w() <= 0.0
+        ):
+            self._auto_charge_cfg["enabled"] = False
+
     def collect_module_states(self) -> dict[str, dict[str, Any]]:
         """Return current module internal states keyed by module name."""
-        return {
+        out = {
             name: module.get_state()
             for name, module in self.modules.items()
         }
+        out["mission_control"] = dict(self._mission_state)
+        return out
 
     def run(
         self,
@@ -228,7 +351,12 @@ class SimEngine:
 
         for step_idx in range(n_steps):
             self._update_target_speed()
-            p_external_charge_w = self._external_charging_power_w(self.sim_state.t)
+            self._update_charge_request()
+            self._apply_mission_speed_policy()
+            p_external_charge_w = (
+                self._scheduled_external_charging_power_w(self.sim_state.t)
+                + self._auto_charge_power_w()
+            )
             self._battery_charge_sum_w += p_external_charge_w
             self._battery_charge_samples += 1
 
@@ -262,9 +390,15 @@ class SimEngine:
             self.sim_state.step_count = step_idx + 1
             self._update_energy_accumulators(self.dt_s)
             row = self.sim_state.to_dict()
+            row["auto_charge_active"] = self._mission_state["auto_charge_active"]
+            row["charge_stop_requested"] = self._mission_state["charge_stop_requested"]
+            row["charge_sessions"] = self._mission_state["charge_sessions"]
+            row["charge_time_s"] = self._mission_state["charge_time_s"]
             history.append(row)
             if observer is not None:
                 observer(row, self.collect_module_states())
+
+            self._update_charging_state()
 
             if self._termination_reached():
                 break

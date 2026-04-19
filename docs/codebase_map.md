@@ -34,8 +34,6 @@ flowchart LR
     Registry["registry.py<br/>kind:model -> class lookup"]:::core
     Engine["engine.py<br/>SimEngine orchestration + time loop"]:::entry
     State["state.py<br/>SimState + ModuleInputs + ModuleOutputs"]:::state
-    LFP["interfaces/lfp_model_v2.py<br/>optional import/export hook"]:::ext
-
     Driver["driver/pid_driver.py<br/>speed target -> throttle/brake"]:::active
     Dyn["dynamics/longitudinal.py<br/>forces -> speed/distance/wheel torque"]:::active
     Reducer["bev/reduction/fixed_ratio.py<br/>wheel side -> motor side"]:::active
@@ -54,7 +52,6 @@ flowchart LR
     VehicleYaml --> Loader
     TestcaseYaml --> Loader
     Schemas --> Loader
-    CLI --> LFP
     Loader --> Engine
     Registry --> Engine
     Engine <--> State
@@ -86,8 +83,6 @@ flowchart LR
     Coolant -. writes via .-> State
 
     Engine --> History
-    History --> LFP
-
     classDef entry fill:#d9ecff,stroke:#2f6fb0,color:#10263f,stroke-width:1.5px;
     classDef config fill:#e6f7e8,stroke:#2e7d32,color:#133016,stroke-width:1.5px;
     classDef active fill:#fff0d9,stroke:#c77700,color:#4d2e00,stroke-width:1.5px;
@@ -129,7 +124,6 @@ flowchart TD
     Core --> Loading["loader.py + schemas/<br/>validation boundary"]:::config
     Core --> RegistryNode["registry.py<br/>module resolution"]:::core
     Core --> Modules["modules/<br/>physics and subsystem models"]:::active
-    Core --> Interfaces["interfaces/<br/>team integration hooks"]:::ext
     Core --> Post["post/<br/>reporting placeholders"]:::inactive
 
     Modules --> DriverFam["driver/<br/>PID driver active<br/>pedal_map present"]:::active
@@ -152,7 +146,6 @@ flowchart TD
     Tests --> Unit["unit tests<br/>loader registry battery motor hvac reducer etc."]:::test
     Tests --> Integration["integration tests<br/>end-to-end BEV and energy balance runs"]:::test
 
-    Interfaces --> LFPInt["lfp_model_v2.py<br/>feedback import + trace export"]:::ext
     Post --> PostPlaceholders["reports timeseries energy_audit dashboard<br/>currently scaffold placeholders"]:::inactive
 
     classDef entry fill:#d9ecff,stroke:#2f6fb0,color:#10263f,stroke-width:1.5px;
@@ -193,7 +186,6 @@ flowchart TD
 ### Extension path
 
 - `registry.py` can load external battery and HVAC classes if the YAML selects `model: external`.
-- `interfaces/lfp_model_v2.py` can import feedback overrides into the battery config and export a stable trace package after a run.
 - `motor/efficiency_map.py` can consume `data/motor_maps/pmsm_160kw.csv`, but only if the vehicle motor model is switched from `analytical` to `efficiency_map`.
 
 ## 4. Active vs Present

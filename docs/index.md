@@ -14,7 +14,13 @@ technical meaning should originate here.
 
 ## Recommended Reading Order
 
+- [Getting Started](getting_started.md)
+- [Examples](examples/README.md)
+- [Public Interface](public_interface.md)
+- [Validation and Limitations](validation.md)
+- [Reference Benchmarks](benchmarks.md)
 - [Architecture](architecture.md)
+- [Output Contract](output_contract.md)
 - [Powertrain Guide](powertrain_guide.md)
 - [YAML Reference](yaml_reference.md)
 - [Adding a Module](adding_a_module.md)
@@ -42,6 +48,11 @@ It should not be treated as:
 - marketing copy
 - a roadmap-only narrative
 - a separate wiki that can drift from implementation
+
+## Public-Facing Honesty Rule
+
+If a feature is not documented in the public interface, examples, or validation
+pages, it should not be presented as a stable public capability.
 
 ## Notes for the Website Team
 

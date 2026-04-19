@@ -31,6 +31,10 @@ Optional:
 - `accumulate(sim_state)`
 - `flush_accumulator()`
 
+Optional but strongly recommended for mission charging control:
+
+- expose battery advisories through `get_state()`
+
 ## Runtime loading
 
 Set battery config as:
@@ -72,6 +76,39 @@ This returns the canonical battery-side power channels:
 - `p_net_w`
 
 Use it unless the external battery model intentionally defines a custom boundary interpretation.
+
+## Optional charge advisories
+
+`BatteryModelBase` also supports standardized advisory keys that the engine can
+read from the battery model `get_state()` output:
+
+- `charge_recommended`
+- `charge_required`
+- `max_charge_power_w`
+- `max_discharge_power_w`
+- `preferred_charge_power_w`
+- `resume_charge_soc`
+- `trigger_charge_soc`
+
+These are mission-control hints, not direct routing commands.
+
+The intended split is:
+
+- the battery model owns pack physics and pack-side limits
+- VEHRON mission control owns route stop, charge, and resume behavior
+
+So the battery model does not directly stop the vehicle. It publishes state and
+advisories, and VEHRON decides how to operate the simulated vehicle.
+
+## Typical external battery workflow
+
+1. Implement a battery class that inherits from `BatteryModelBase`.
+2. Use `resolve_power_inputs()` inside `step()` unless a custom boundary is truly required.
+3. Return `soc`, `v_batt_v`, `i_batt_a`, and `p_batt_w`.
+4. Optionally expose advisories such as `charge_required` and `max_charge_power_w`.
+5. Point the vehicle YAML battery section to the local file and class name.
+6. Configure route and charging policy in the testcase YAML.
+7. Run VEHRON through the CLI and inspect the case package under `output/cases/...`.
 
 ## Ownership split
 

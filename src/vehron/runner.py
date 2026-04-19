@@ -10,13 +10,16 @@ from typing import Any
 import click
 
 from vehron.engine import SimEngine
-from vehron.interfaces.lfp_model_v2 import (
-    apply_lfp_model_v2_feedback,
-    export_lfp_model_v2_hook,
-)
 from vehron.loader import ConfigLoader
 from vehron.post.dashboard import generate_case_plots
 from vehron.post.reports import make_case_name, write_case_package
+from vehron.resources import (
+    list_packaged_archetypes,
+    list_packaged_testcases,
+    package_data_root,
+    packaged_archetype_path,
+    packaged_testcase_path,
+)
 
 
 @click.group()
@@ -27,21 +30,59 @@ def cli() -> None:
 @cli.command("run")
 @click.option("--vehicle", "vehicle_path", required=True, type=click.Path(exists=True, dir_okay=False, path_type=Path))
 @click.option("--testcase", "testcase_path", required=True, type=click.Path(exists=True, dir_okay=False, path_type=Path))
-@click.option("--lfp-feedback-file", "lfp_feedback_file", required=False, type=click.Path(exists=True, dir_okay=False, path_type=Path))
-@click.option("--lfp-export-dir", "lfp_export_dir", required=False, type=click.Path(file_okay=False, path_type=Path))
 def run_cmd(
     vehicle_path: Path,
     testcase_path: Path,
-    lfp_feedback_file: Path | None,
-    lfp_export_dir: Path | None,
 ) -> None:
     """Run a simulation and print a short summary."""
-    loader = ConfigLoader(project_root=Path.cwd())
+    _run_case(vehicle_path, testcase_path, project_root=Path.cwd())
+
+
+@cli.command("run-example")
+@click.option(
+    "--vehicle",
+    "vehicle_name",
+    required=True,
+    type=str,
+    help="Packaged vehicle archetype name, with or without .yaml",
+)
+@click.option(
+    "--testcase",
+    "testcase_name",
+    required=True,
+    type=str,
+    help="Packaged testcase name, with or without .yaml",
+)
+def run_example_cmd(vehicle_name: str, testcase_name: str) -> None:
+    """Run a simulation using packaged VEHRON archetypes and testcases."""
+    vehicle_path = packaged_archetype_path(vehicle_name)
+    testcase_path = packaged_testcase_path(testcase_name)
+    _run_case(vehicle_path, testcase_path, project_root=package_data_root())
+
+
+@cli.command("data-dir")
+def data_dir_cmd() -> None:
+    """Print the packaged VEHRON data directory."""
+    click.echo(package_data_root())
+
+
+@cli.command("list-examples")
+def list_examples_cmd() -> None:
+    """List packaged vehicle archetypes and testcases."""
+    click.echo("vehicle_archetypes:")
+    for name in list_packaged_archetypes():
+        click.echo(f"- {name}")
+    click.echo("testcases:")
+    for name in list_packaged_testcases():
+        click.echo(f"- {name}")
+
+
+def _run_case(vehicle_path: Path, testcase_path: Path, project_root: Path) -> None:
+    loader = ConfigLoader(project_root=project_root)
     vehicle_source = vehicle_path.read_text(encoding="utf-8")
     testcase_source = testcase_path.read_text(encoding="utf-8")
     vehicle_cfg, testcase_cfg = loader.load(vehicle_path, testcase_path)
-    vehicle_cfg, feedback_applied = apply_lfp_model_v2_feedback(vehicle_cfg, lfp_feedback_file)
-    engine = SimEngine(vehicle_cfg, testcase_cfg, project_root=Path.cwd())
+    engine = SimEngine(vehicle_cfg, testcase_cfg, project_root=project_root)
     click.echo(_render_spec_sheet(vehicle_cfg, testcase_cfg))
     result = engine.run(observer=_live_progress_reporter)
 
@@ -65,16 +106,8 @@ def run_cmd(
     click.echo(f"case_dir={case_dir}")
     click.echo(f"plots_generated={len(plot_paths)}")
     click.echo(f"idle_time_s={summary['idle_time_s']:.2f}")
-
-    if lfp_export_dir is not None:
-        out_dir = export_lfp_model_v2_hook(
-            result=result,
-            vehicle_cfg=vehicle_cfg,
-            testcase_cfg=testcase_cfg,
-            export_dir=lfp_export_dir,
-            feedback_applied=feedback_applied,
-        )
-        click.echo(f"lfp_model_v2_export={out_dir}")
+    click.echo(f"charge_sessions={summary['charge_sessions']}")
+    click.echo(f"charge_time_s={summary['charge_time_s']:.2f}")
 
 
 def _render_spec_sheet(vehicle_cfg: dict[str, Any], testcase_cfg: dict[str, Any]) -> str:
@@ -83,6 +116,7 @@ def _render_spec_sheet(vehicle_cfg: dict[str, Any], testcase_cfg: dict[str, Any]
     route = testcase_cfg.get("route", {})
     env = testcase_cfg.get("environment", {})
     sim = testcase_cfg.get("simulation", {})
+    auto_charge = sim.get("auto_charge", {})
     payload = testcase_cfg.get("payload", {})
     return "\n".join(
         [
@@ -94,6 +128,7 @@ def _render_spec_sheet(vehicle_cfg: dict[str, Any], testcase_cfg: dict[str, Any]
             f"battery_model={battery.get('model', 'unknown')} capacity_kwh={float(battery.get('capacity_kwh', 0.0)):.3f} soc_init={float(battery.get('soc_init', 0.0)):.4f} soc_min={float(battery.get('soc_min', 0.0)):.4f} soc_max={float(battery.get('soc_max', 0.0)):.4f}",
             f"charge_rate_c={float(battery.get('max_charge_rate_c', 0.0)):.3f} discharge_rate_c={float(battery.get('max_discharge_rate_c', 0.0)):.3f}",
             f"simulation_dt_s={float(sim.get('dt_s', 0.0)):.3f} max_duration_s={float(sim.get('max_duration_s', 0.0)):.3f} stop_on_soc_min={bool(sim.get('stop_on_soc_min', True))}",
+            f"auto_charge_enabled={bool(auto_charge.get('enabled', False))} trigger_soc={float(auto_charge.get('trigger_soc', 0.0)):.4f} resume_soc={float(auto_charge.get('resume_soc', 0.0)):.4f} charger_power_kw={float(auto_charge.get('charger_power_kw', 0.0)):.3f}",
             f"payload_passengers={int(payload.get('passengers', 0))} cargo_kg={float(payload.get('cargo_kg', 0.0)):.2f}",
             "=== Run Start ===",
         ]
@@ -114,6 +149,7 @@ def _live_progress_reporter(row: dict[str, Any], module_states: dict[str, dict[s
         f"v_kmh={float(row.get('v_kmh', 0.0)):.2f} "
         f"a_ms2={float(row.get('a_ms2', 0.0)):.3f} "
         f"soc={float(row.get('soc', 0.0)):.4f} "
+        f"charging={bool(row.get('auto_charge_active', False))} "
         f"{details}".rstrip()
     )
 

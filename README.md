@@ -2,7 +2,7 @@
 
 VEHRON stands for **VEHicle Research and Optimisation Network**.
 
-VEHRON is an open-source, modular, forward-time vehicle simulation software focused on engineering use-cases such as:
+VEHRON is an open-source, modular, forward-time vehicle simulation framework focused on engineering use-cases such as:
 
 - Energy consumption estimation
 - Range and SOC trajectory prediction
@@ -16,7 +16,51 @@ The guiding idea is simple:
 - The **physics** lives in modules.
 - Vehicle and experiment definitions come from **configuration files**.
 
-This repository is currently in an active build-up phase with a working BEV 4W pipeline and fixed multi-rate scheduling support.
+This repository is currently in an active build-up phase with a working BEV-focused simulation path and fixed multi-rate scheduling support.
+
+## Current Scope
+
+VEHRON v1 should be understood as a **BEV-focused research software package**.
+
+The active supported path today is:
+
+- battery-electric vehicles (`powertrain: bev`)
+- forward-time longitudinal simulation
+- YAML-defined vehicles and testcases
+- parametric routes and speed-trace drive cycles
+- configurable battery, HVAC, motor, reducer, regen, and thermal trend models
+- reproducible case package outputs
+
+VEHRON should **not** currently be interpreted as:
+
+- a general multi-powertrain vehicle simulator
+- a battery degradation inference package
+- a high-fidelity electrochemical battery solver
+- a GPS/lat-lon route replay framework
+- a fully validated production-grade vehicle model
+
+If you are evaluating VEHRON for reuse, treat it as a modular BEV simulation kernel with documented extension points, not as a finished broad vehicle platform.
+
+## Capability Matrix
+
+| Area | Supported Today | Experimental / Partial | Planned / Not Yet Supported |
+| --- | --- | --- | --- |
+| Powertrain scope | BEV active path | non-BEV code scaffolding present in repo | ICE / hybrid / FCEV public support |
+| Vehicle classes | BEV sedan example and BEV-style studies | placeholder archetypes in repo | broad validated archetype library |
+| Route input | parametric route, `time_s,speed_kmh` drive-cycle CSV | fixed route abstractions inside engine | GPS / lat-lon / elevation route ingestion |
+| Battery models | `rint`, `ecm_2rc`, external battery slot | advisory-driven charge-stop-resume control | degradation-aware built-in battery models |
+| HVAC models | `cabin_load`, external HVAC slot | low-order lumped thermal behavior | high-fidelity AC / heat-pump runtime models |
+| Thermal modeling | battery, motor, coolant trend states | low-order coupled trends only | detailed thermal network calibration |
+| Outputs | case package, summary, timeseries, plots | current output schema still evolving | richer comparison/report workflows |
+| Public reuse story | CLI-driven BEV studies, custom YAMLs, external battery/HVAC models | Python API use via core classes | larger stable plugin ecosystem |
+
+See also:
+
+- [Public Interface](/home/sn/02_git/vehron/docs/public_interface.md)
+- [Getting Started](/home/sn/02_git/vehron/docs/getting_started.md)
+- [Validation and Limitations](/home/sn/02_git/vehron/docs/validation.md)
+- [Reference Benchmarks](/home/sn/02_git/vehron/docs/benchmarks.md)
+- [YAML Reference](/home/sn/02_git/vehron/docs/yaml_reference.md)
 
 ## License
 
@@ -55,8 +99,9 @@ VEHRON is designed as a **component-based simulator**, not a monolithic model. Y
 
 ### Supported focus today
 
-- Primary: **BEV 4W** (working)
-- Planned next: **BEV 2W** using the same core architecture with archetype-specific parameters
+- Primary: **BEV active path** (`powertrain: bev`)
+- Public emphasis: reproducible BEV duty-cycle simulation rather than broad powertrain coverage
+- Planned next: broader archetype and route support after the BEV baseline is better documented and validated
 
 ---
 
@@ -172,6 +217,12 @@ Optional:
 
 - Drive-cycle CSV (`time_s, speed_kmh`) for cycle-driven runs
 
+For the public user-facing contract, see:
+
+- [Public Interface](/home/sn/02_git/vehron/docs/public_interface.md)
+- [Getting Started](/home/sn/02_git/vehron/docs/getting_started.md)
+- [YAML Reference](/home/sn/02_git/vehron/docs/yaml_reference.md)
+
 For private battery plugins, the battery section can point to a local Python file:
 
 ```yaml
@@ -229,6 +280,21 @@ What the battery slot is expected to write back:
 - Battery temperature-related state if the model owns it
 - Any battery-side limits or internal states exposed through the VEHRON state contract
 
+Optional battery advisories for mission charging control:
+
+- `charge_recommended`
+- `charge_required`
+- `max_charge_power_w`
+- `max_discharge_power_w`
+- `preferred_charge_power_w`
+- `resume_charge_soc`
+- `trigger_charge_soc`
+
+These may be exposed through the battery model `get_state()` return value. VEHRON
+uses them as mission-control hints. The battery does not directly stop the
+vehicle; the mission controller reads these advisories and decides whether to
+pause the route, charge, and resume.
+
 What VEHRON expects from an external HVAC model:
 
 - The class must inherit from `HvacModelBase`
@@ -256,20 +322,30 @@ What the HVAC slot is expected to write back:
 
 Current outputs are:
 
-- CLI summary (steps, distance, final SOC, total net energy)
+- CLI summary (steps, distance, final SOC, total net energy, charge sessions)
 - Full in-memory time series (available during run)
 - Case artifacts (when saved as a case package):
   - `summary.json`
   - `timeseries.csv`
-  - plots (`speed`, `SOC`, `power channels`, `thermal channels`)
+  - plots (`motion`, `SOC + idle`, `vehicle temperatures`)
   - copied input snapshots (`vehicle.yaml`, `testcase.yaml`)
+  - resolved input snapshots (`vehicle_resolved.yaml`, `testcase_resolved.yaml`)
   - case `README.md` with model/rate metadata
+
+Current CLI run flow:
+
+- prints a test spec sheet before simulation starts
+- prints live progress at 10-second intervals
+- shows distance, speed, acceleration, SOC, charging state, and available temperatures
+- writes a case package under `output/cases/...`
 
 Charging and regen observability:
 
 - Regenerative charging appears through positive `p_regen_w` and accumulated `e_regen_wh`.
 - Net battery charging appears as negative `i_batt_a` and negative `p_batt_w`.
 - External charging contributes through the optional testcase charging window fields.
+- Auto charge-stop-resume runs expose `auto_charge_active`, `charge_stop_requested`,
+  `charge_sessions`, and `charge_time_s` in the exported time series.
 
 ---
 
@@ -349,30 +425,6 @@ vehron run \
 
 To evaluate any vehicle on WLTP, keep the same testcase and swap `--vehicle`.
 
-### LFP_model_v2 interface hooks
-
-Export VEHRON traces for the battery team model:
-
-```bash
-vehron run \
-  --vehicle src/vehron/archetypes/bev_car_sedan.yaml \
-  --testcase src/vehron/testcases/wltp_class3b_standard.yaml \
-  --lfp-export-dir output/interop/LFP_model_v2/wltp_run_001
-```
-
-Optional feedback import before run:
-
-```bash
-vehron run \
-  --vehicle src/vehron/archetypes/bev_car_sedan.yaml \
-  --testcase src/vehron/testcases/wltp_class3b_standard.yaml \
-  --lfp-feedback-file input/lfp_model_v2_feedback.json \
-  --lfp-export-dir output/interop/LFP_model_v2/wltp_run_002
-```
-
-Interface contract details:
-
-- [docs/lfp_model_v2_interface.md](/home/sn/02_git/vehron/docs/lfp_model_v2_interface.md)
 - [docs/battery_slot_interface.md](/home/sn/02_git/vehron/docs/battery_slot_interface.md)
 
 ### Private battery model hook
@@ -408,6 +460,44 @@ battery:
   soc_min: 0.05
   soc_max: 0.98
 ```
+
+Example testcase charging policy:
+
+```yaml
+simulation:
+  dt_s: 0.2
+  max_duration_s: 4000.0
+  stop_on_soc_min: true
+  auto_charge:
+    enabled: true
+    trigger_soc: 0.18
+    resume_soc: 0.80
+    charger_power_kw: 60.0
+    stop_speed_threshold_ms: 0.3
+    max_charge_stops: 10
+```
+
+How the charging-control split works today:
+
+1. VEHRON mission control watches SoC and battery advisories.
+2. When charging is needed, VEHRON requests a stop by forcing target speed to zero.
+3. Once the vehicle speed is below the configured stop threshold, VEHRON enters charging mode.
+4. Charging power is limited by the testcase charger power and any battery advisory limits such as `max_charge_power_w`.
+5. VEHRON resumes the mission after the resume SoC threshold is reached.
+
+What the external battery model should do:
+
+- own pack physics
+- compute SoC, current, voltage, and power response
+- optionally expose charge advisories through `get_state()`
+- optionally expose richer temperature channels through `get_state()`
+
+What VEHRON mission control should do:
+
+- decide when to stop the route
+- decide when to start charging
+- cap charge power at the allowed mission and battery limits
+- resume the route when charging policy says to continue
 
 ### Battery Team Quick Start
 
@@ -451,23 +541,25 @@ battery:
 5. Run VEHRON normally:
 
 ```bash
-vehron run \
+.venv/bin/python -m vehron.runner run \
   --vehicle path/to/vehicle_with_private_battery.yaml \
   --testcase src/vehron/testcases/wltp_class3b_standard.yaml
 ```
 
-6. If the battery team also wants VEHRON mission traces for offline analysis, export them:
+During the run, VEHRON will:
 
-```bash
-vehron run \
-  --vehicle path/to/vehicle_with_private_battery.yaml \
-  --testcase src/vehron/testcases/wltp_class3b_standard.yaml \
-  --lfp-export-dir output/interop/LFP_model_v2/wltp_run_001
-```
+- print a test spec sheet before starting
+- print live progress every 10 seconds of simulation time
+- show whether the vehicle is currently charging
+- show available vehicle-level temperatures
+- write a case package and plots when the run finishes
 
-Recommended handoff from the battery team:
+6. Recommended handoff from the battery team:
 
 - private Python file or package
+- selected battery YAML or modified archetype YAML
+- chosen charging policy in testcase YAML
+- note of which advisory keys the private battery publishes
 - class name
 - required configuration parameters and units
 - any extra Python dependencies

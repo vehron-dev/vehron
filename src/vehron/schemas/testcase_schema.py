@@ -37,6 +37,7 @@ class SimulationSection(BaseModel):
     external_charging_power_kw: float = Field(ge=0, default=0.0)
     external_charging_start_s: float = Field(ge=0, default=0.0)
     external_charging_end_s: float = Field(ge=0, default=0.0)
+    auto_charge: dict[str, float | bool] = Field(default_factory=dict)
 
 
 class OutputsSection(BaseModel):

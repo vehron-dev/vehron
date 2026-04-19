@@ -24,6 +24,10 @@ class PrivateBatteryModel(BatteryModelBase):
     def initialize(self, dt: float) -> None:
         self._state = {
             "soc": float(self.params.get("soc_init", 0.95)),
+            "charge_required": False,
+            "max_charge_power_w": float(self.params.get("max_charge_power_w", 25000.0)),
+            "resume_charge_soc": float(self.params.get("resume_charge_soc", 0.80)),
+            "trigger_charge_soc": float(self.params.get("trigger_charge_soc", 0.18)),
         }
 
     def step(self, sim_state: SimState, inputs: ModuleInputs, dt: float) -> ModuleOutputs:
@@ -47,6 +51,7 @@ class PrivateBatteryModel(BatteryModelBase):
         soc_next = soc - (i_batt_a * dt) / (capacity_ah * 3600.0)
         soc_next = min(max(soc_next, soc_min), soc_max)
         self._state["soc"] = soc_next
+        self._state["charge_required"] = soc_next <= float(self._state["trigger_charge_soc"])
 
         return ModuleOutputs(
             soc=soc_next,

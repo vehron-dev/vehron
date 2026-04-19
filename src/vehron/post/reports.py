@@ -31,6 +31,9 @@ def build_summary(result: SimulationResult, vehicle_cfg: dict[str, Any], testcas
     initial_soc = float(vehicle_cfg.get("battery", {}).get("soc_init", 0.0))
     charge_steps = sum(1 for row in rows if float(row.get("i_batt_a", 0.0)) < 0.0)
     idle_steps = sum(1 for row in rows if abs(float(row.get("v_ms", 0.0))) < 0.1)
+    charge_sessions = max((int(row.get("charge_sessions", 0)) for row in rows), default=0)
+    auto_charge_active = any(bool(row.get("auto_charge_active", False)) for row in rows)
+    charge_time_s = max((float(row.get("charge_time_s", 0.0)) for row in rows), default=0.0)
     dt_s = float(testcase_cfg.get("simulation", {}).get("dt_s", 0.0))
 
     return {
@@ -47,6 +50,9 @@ def build_summary(result: SimulationResult, vehicle_cfg: dict[str, Any], testcas
         "energy_wh": final.total_energy_consumed_wh(),
         "regen_wh": final.e_regen_wh,
         "charge_steps": charge_steps,
+        "charge_sessions": charge_sessions,
+        "charge_time_s": charge_time_s,
+        "auto_charge_used": auto_charge_active,
         "idle_time_s": idle_steps * dt_s,
         "ambient_temp_c": final.t_ambient_k - 273.15,
         "battery_temp_c": final.t_batt_k - 273.15,
@@ -91,6 +97,8 @@ def _build_case_readme(summary: dict[str, Any], vehicle_cfg: dict[str, Any], tes
             f"- Initial SoC: {summary['soc_initial']:.4f}",
             f"- Final SoC: {summary['soc_final']:.4f}",
             f"- Net energy: {summary['energy_wh']:.2f} Wh",
+            f"- Charge sessions: {summary['charge_sessions']}",
+            f"- Charge time: {summary['charge_time_s']:.2f} s",
             "",
             "Artifacts:",
             "- summary.json",
