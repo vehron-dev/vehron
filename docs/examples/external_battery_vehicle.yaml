@@ -2,8 +2,8 @@ vehicle:
   name: "City EV Sedan External Battery Example"
   archetype: car
   powertrain: bev
-  mass_kg: 1450
-  payload_kg: 120
+  mass_kg: 1600
+  payload_kg: 0
   frontal_area_m2: 2.25
   drag_coefficient: 0.29
   wheel_radius_m: 0.316

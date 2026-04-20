@@ -16,6 +16,7 @@ route:
 
 payload:
   passengers: 1
+  passenger_mass_kg: 75.0
   cargo_kg: 0.0
 
 simulation:

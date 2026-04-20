@@ -27,6 +27,7 @@ class RouteSection(BaseModel):
 
 class PayloadSection(BaseModel):
     passengers: int = Field(ge=0, default=0)
+    passenger_mass_kg: float = Field(ge=0, default=75.0)
     cargo_kg: float = Field(ge=0, default=0.0)
 
 

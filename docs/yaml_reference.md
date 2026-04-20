@@ -19,8 +19,8 @@ Core vehicle-level properties:
 - `name`: descriptive vehicle name
 - `archetype`: broad category such as `car`, `bus`, or `truck`
 - `powertrain`: currently `bev` in the active validated path
-- `mass_kg`: curb mass
-- `payload_kg`: added mission payload
+- `mass_kg`: base vehicle mass, typically treated as curb-mass-like for packaged archetypes
+- `payload_kg`: vehicle-level fixed added payload; packaged archetypes should usually leave this at `0.0` and put mission-specific occupants/cargo in testcase payload
 - `frontal_area_m2`: frontal area used for aero drag
 - `drag_coefficient`: aerodynamic drag coefficient
 - `wheel_radius_m`: effective driven wheel radius
@@ -119,7 +119,7 @@ Rule of thumb:
 
 - cabin and envelope properties belong in the vehicle YAML
 - ambient temperature and solar loading belong in the testcase YAML
-- passenger count belongs in testcase payload and feeds cabin internal gains
+- passenger count belongs in testcase payload, feeds cabin internal gains, and contributes to longitudinal mass through `passenger_mass_kg`
 
 For a private external HVAC model:
 
@@ -143,6 +143,17 @@ hvac:
 - `power_steering_w`
 
 ## Testcase YAML
+
+### `payload`
+
+- `passengers`
+- `passenger_mass_kg`: assumed mass per passenger used in longitudinal mass calculation; defaults to `75.0`
+- `cargo_kg`
+
+Semantics:
+
+- effective simulated payload mass = `vehicle.payload_kg + payload.cargo_kg + payload.passengers * payload.passenger_mass_kg`
+- `payload.passengers` also feeds HVAC occupancy/internal gains
 
 ### `environment`
 

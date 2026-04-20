@@ -37,6 +37,8 @@ class SimEngine:
         self.max_duration_s = float(testcase_cfg["simulation"]["max_duration_s"])
         self._battery_charge_sum_w = 0.0
         self._battery_charge_samples = 0
+        self.passenger_count = 0
+        self.passenger_mass_kg = 75.0
 
         self._setup_initial_state()
         self._build_modules()
@@ -112,8 +114,11 @@ class SimEngine:
     def _build_modules(self) -> None:
         vehicle = self.vehicle_cfg["vehicle"]
         testcase_payload = self.testcase_cfg.get("payload", {})
+        self.passenger_count = int(testcase_payload.get("passengers", 0))
+        self.passenger_mass_kg = float(testcase_payload.get("passenger_mass_kg", 75.0))
         effective_payload_kg = (
             float(vehicle.get("payload_kg", 0.0))
+            + self.passenger_count * self.passenger_mass_kg
             + float(testcase_payload.get("cargo_kg", 0.0))
         )
 
@@ -173,7 +178,7 @@ class SimEngine:
             "coolant_loop": coolant_cls({"tau_s": 900.0}),
             "hvac": hvac_cls({
                 **self.vehicle_cfg["hvac"],
-                "passenger_count": self.testcase_cfg.get("payload", {}).get("passengers", 0),
+                "passenger_count": self.passenger_count,
                 "solar_irradiance_wm2": self.testcase_cfg["environment"].get("solar_irradiance_wm2", 0.0),
             }),
             "aux_loads": aux_cls(self.vehicle_cfg["aux_loads"]),
@@ -262,7 +267,7 @@ class SimEngine:
                         self._battery_charge_samples = 0
                     if name == "hvac":
                         inputs = ModuleInputs(extras={
-                            "passenger_count": self.testcase_cfg.get("payload", {}).get("passengers", 0),
+                            "passenger_count": self.passenger_count,
                             "solar_irradiance_wm2": self.testcase_cfg["environment"].get("solar_irradiance_wm2", 0.0),
                         })
                     outputs = module.step(self.sim_state, inputs, effective_dt)

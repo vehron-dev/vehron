@@ -140,7 +140,7 @@ def _render_spec_sheet(vehicle_cfg: dict[str, Any], testcase_cfg: dict[str, Any]
             f"battery_model={battery.get('model', 'unknown')} capacity_kwh={float(battery.get('capacity_kwh', 0.0)):.3f} soc_init={float(battery.get('soc_init', 0.0)):.4f} soc_min={float(battery.get('soc_min', 0.0)):.4f} soc_max={float(battery.get('soc_max', 0.0)):.4f}",
             f"charge_rate_c={float(battery.get('max_charge_rate_c', 0.0)):.3f} discharge_rate_c={float(battery.get('max_discharge_rate_c', 0.0)):.3f}",
             f"simulation_dt_s={float(sim.get('dt_s', 0.0)):.3f} max_duration_s={float(sim.get('max_duration_s', 0.0)):.3f} stop_on_soc_min={bool(sim.get('stop_on_soc_min', True))}",
-            f"payload_passengers={int(payload.get('passengers', 0))} cargo_kg={float(payload.get('cargo_kg', 0.0)):.2f}",
+            f"payload_passengers={int(payload.get('passengers', 0))} passenger_mass_kg={float(payload.get('passenger_mass_kg', 75.0)):.2f} cargo_kg={float(payload.get('cargo_kg', 0.0)):.2f}",
             "=== Run Start ===",
         ]
     )

@@ -69,7 +69,7 @@ Testcase YAML defines:
 - environment conditions
 - route mode and route inputs
 - simulation settings
-- payload
+- payload including passenger count, passenger mass assumption, and cargo mass
 - output preferences
 
 Supported route forms today:

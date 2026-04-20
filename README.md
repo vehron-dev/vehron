@@ -241,11 +241,18 @@ VEHRON currently takes two primary YAML inputs:
 2. **Test case YAML**
 - Environment (ambient, wind)
 - Route mode and constraints (parametric or drive-cycle)
+- Payload and occupancy (`passengers`, `passenger_mass_kg`, `cargo_kg`)
 - Simulation settings (`dt`, max duration, stop criteria)
 - Optional external charging window:
   - `external_charging_power_kw`
   - `external_charging_start_s`
   - `external_charging_end_s`
+
+Payload semantics in the active path:
+
+- `passengers` contributes both cabin occupancy gains and longitudinal mass
+- effective mission payload mass is `vehicle.payload_kg + cargo_kg + passengers * passenger_mass_kg`
+- `passenger_mass_kg` defaults to `75.0` if omitted
 
 Optional:
 

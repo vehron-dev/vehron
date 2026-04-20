@@ -39,8 +39,8 @@ vehicle:
   name: "External HVAC Test Vehicle"
   archetype: car
   powertrain: bev
-  mass_kg: 1450
-  payload_kg: 120
+  mass_kg: 1600
+  payload_kg: 0
   frontal_area_m2: 2.25
   drag_coefficient: 0.29
   wheel_radius_m: 0.316
@@ -135,6 +135,7 @@ route:
 
 payload:
   passengers: 0
+  passenger_mass_kg: 75.0
   cargo_kg: 0.0
 
 simulation:
@@ -172,6 +173,30 @@ def test_engine_applies_testcase_cargo_to_effective_mass(project_root):
     expected_mass_kg = (
         float(vehicle["vehicle"]["mass_kg"])
         + float(vehicle["vehicle"].get("payload_kg", 0.0))
+        + float(testcase["payload"].get("passengers", 0)) * float(testcase["payload"].get("passenger_mass_kg", 75.0))
         + float(testcase["payload"].get("cargo_kg", 0.0))
+    )
+    assert mass_kg == expected_mass_kg
+
+
+def test_engine_applies_passenger_payload_mass_with_configurable_assumption(project_root):
+    loader = ConfigLoader(project_root=project_root)
+    vehicle, testcase = loader.load(
+        project_root / "src/vehron/archetypes/bev_car_sedan.yaml",
+        project_root / "src/vehron/testcases/flat_highway_100kmh.yaml",
+    )
+
+    testcase["payload"]["passengers"] = 3
+    testcase["payload"]["passenger_mass_kg"] = 82.5
+    testcase["payload"]["cargo_kg"] = 15.0
+
+    engine = SimEngine(vehicle, testcase, project_root=project_root)
+
+    mass_kg = float(engine.modules["dynamics"].params["mass_kg"])
+    expected_mass_kg = (
+        float(vehicle["vehicle"]["mass_kg"])
+        + float(vehicle["vehicle"].get("payload_kg", 0.0))
+        + 3 * 82.5
+        + 15.0
     )
     assert mass_kg == expected_mass_kg
