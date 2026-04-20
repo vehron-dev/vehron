@@ -30,6 +30,7 @@ docs/VEHRON_Offline_Documentation.pdf
 docs/build_offline_docx.py
 
 # Local paper build artifacts
+paper/
 paper.pdf
 paper_readable.tex
 paper_readable.pdf
