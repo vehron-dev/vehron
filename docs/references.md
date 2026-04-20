@@ -22,12 +22,13 @@ reproduction. Each model page should still state whether the implementation is:
    Applied Thermal Engineering 75, 45-53
    DOI: https://doi.org/10.1016/j.applthermaleng.2014.05.074
 
-3. Noreen, U., Farooq, M., and Batool, M., 2019
+3. Marshall, G. J., Mahony, C. P., Rhodes, M. J., Daniewicz, S. R., Tsolas, N., and Thompson, S. M., 2019
    "Thermal Management of Vehicle Cabins, External Surfaces, and Onboard Electronics: An Overview"
    Engineering 5(5), 954-969
    DOI: https://doi.org/10.1016/j.eng.2019.02.009
 
-4. "A systematic review on modelling the thermal environment of vehicle cabins", 2024
+4. Zhao, L., Zhou, Q., and Wang, Z., 2024
+   "A systematic review on modelling the thermal environment of vehicle cabins"
    Applied Thermal Engineering 257, 124142
    DOI: https://doi.org/10.1016/j.applthermaleng.2024.124142
 

@@ -39,12 +39,12 @@ VEHRON needs:
 
 The broader modeling context is summarized well by:
 
-- Noreen, Farooq, and Batool, 2019
+- Marshall, Mahony, Rhodes, Daniewicz, Tsolas, and Thompson, 2019
   "Thermal Management of Vehicle Cabins, External Surfaces, and Onboard Electronics: An Overview"
   Engineering 5(5), 954-969
   DOI: https://doi.org/10.1016/j.eng.2019.02.009
 
-- 2024 systematic review:
+- Zhao, Zhou, and Wang, 2024
   "A systematic review on modelling the thermal environment of vehicle cabins"
   Applied Thermal Engineering 257, 124142
   DOI: https://doi.org/10.1016/j.applthermaleng.2024.124142
