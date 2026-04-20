@@ -15,6 +15,7 @@ The most important architectural principle is separation of concerns:
 - `SimState` is the shared state bus seen by all modules.
 - Each module owns one domain behavior and returns only the outputs it computes.
 - Configuration enters through validated YAML, not ad hoc runtime code.
+- Route loading and drive-cycle target generation live in `vehron.routes`, not inside the timestep loop itself.
 
 ## Active BEV Flow
 
@@ -48,6 +49,7 @@ The active BEV modules include:
 - `src/vehron/state.py`: shared simulation bus and module I/O contract.
 - `src/vehron/registry.py`: maps YAML `model` selections to module classes.
 - `src/vehron/loader.py`: YAML loading, validation, and boundary conversions.
+- `src/vehron/routes.py`: route-file loading and drive-cycle target-speed helpers.
 - `src/vehron/modules/`: domain models grouped by subsystem.
 
 ## Shared State Contract

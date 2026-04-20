@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-import csv
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any, Callable
@@ -13,7 +12,7 @@ from vehron.registry import (
     get_hvac_module_class,
     get_module_class,
 )
-from vehron.resources import resolve_runtime_path
+from vehron.routes import drive_cycle_target_speed, load_drive_cycle_profile
 from vehron.state import ModuleInputs, ModuleOutputs, SimState
 
 
@@ -64,52 +63,7 @@ class SimEngine:
 
         self._drive_cycle_profile: list[tuple[float, float]] | None = None
         if route.get("mode") == "drive_cycle":
-            self._drive_cycle_profile = self._load_drive_cycle(route.get("drive_cycle_file"))
-
-    def _load_drive_cycle(self, cycle_file: str | None) -> list[tuple[float, float]]:
-        if not cycle_file:
-            return [(0.0, 0.0)]
-
-        path = Path(cycle_file)
-        if not path.is_absolute():
-            path = resolve_runtime_path(self.project_root, path)
-
-        profile: list[tuple[float, float]] = []
-        with path.open("r", encoding="utf-8") as handle:
-            reader = csv.reader(line for line in handle if not line.startswith("#"))
-            for row in reader:
-                if len(row) < 2:
-                    continue
-                first = row[0].strip()
-                second = row[1].strip()
-                if first.lower() == "time_s" and second.lower() == "speed_kmh":
-                    continue
-                t_s = float(first)
-                speed_ms = float(second) / 3.6
-                profile.append((t_s, speed_ms))
-
-        if not profile:
-            profile = [(0.0, 0.0)]
-        return profile
-
-    def _drive_cycle_target_speed(self, t_s: float) -> float:
-        assert self._drive_cycle_profile is not None
-        profile = self._drive_cycle_profile
-        if len(profile) == 1:
-            return profile[0][1]
-
-        cycle_duration_s = profile[-1][0]
-        if cycle_duration_s <= 0:
-            return profile[-1][1]
-
-        t_mod = t_s % cycle_duration_s
-        for idx in range(1, len(profile)):
-            t0, v0 = profile[idx - 1]
-            t1, v1 = profile[idx]
-            if t_mod <= t1:
-                ratio = 0.0 if t1 == t0 else (t_mod - t0) / (t1 - t0)
-                return v0 + ratio * (v1 - v0)
-        return profile[-1][1]
+            self._drive_cycle_profile = load_drive_cycle_profile(self.project_root, route.get("drive_cycle_file"))
 
     def _build_modules(self) -> None:
         vehicle = self.vehicle_cfg["vehicle"]
@@ -203,7 +157,7 @@ class SimEngine:
     def _update_target_speed(self) -> None:
         route = self.testcase_cfg["route"]
         if route.get("mode") == "drive_cycle" and self._drive_cycle_profile is not None:
-            self.sim_state.target_v_ms = self._drive_cycle_target_speed(self.sim_state.t)
+            self.sim_state.target_v_ms = drive_cycle_target_speed(self._drive_cycle_profile, self.sim_state.t)
 
     def _termination_reached(self) -> bool:
         if self.sim_state.distance_m >= self.target_distance_m:

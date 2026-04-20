@@ -1,5 +1,6 @@
 from vehron.loader import ConfigLoader
 from vehron.engine import SimEngine
+from vehron.routes import drive_cycle_target_speed, load_drive_cycle_profile
 
 
 def test_loader_validates_and_converts(project_root):
@@ -158,6 +159,26 @@ simulation:
     assert engine._drive_cycle_profile[0] == (0.0, 0.0)
     assert engine._drive_cycle_profile[1][0] == 10.0
     assert engine._drive_cycle_profile[1][1] == 10.0
+
+
+def test_routes_module_accepts_headered_drive_cycle_csv(project_root, tmp_path):
+    cycle_path = tmp_path / "headered_cycle.csv"
+    cycle_path.write_text(
+        "time_s,speed_kmh\n0,0\n10,36\n20,0\n",
+        encoding="utf-8",
+    )
+
+    profile = load_drive_cycle_profile(project_root, str(cycle_path))
+
+    assert profile == [(0.0, 0.0), (10.0, 10.0), (20.0, 0.0)]
+
+
+def test_routes_module_repeats_drive_cycle_by_time_modulo():
+    profile = [(0.0, 0.0), (10.0, 10.0), (20.0, 0.0)]
+
+    assert drive_cycle_target_speed(profile, 5.0) == 5.0
+    assert drive_cycle_target_speed(profile, 15.0) == 5.0
+    assert drive_cycle_target_speed(profile, 25.0) == 5.0
 
 
 def test_engine_applies_testcase_cargo_to_effective_mass(project_root):
