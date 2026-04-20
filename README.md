@@ -1,5 +1,7 @@
 # VEHRON
 
+[![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.19660006.svg)](https://doi.org/10.5281/zenodo.19660006)
+
 VEHRON stands for **VEHicle Research and Optimisation Network**.
 
 VEHRON is an open-source, modular, forward-time vehicle simulation software focused on engineering use-cases such as:
