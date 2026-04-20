@@ -78,8 +78,12 @@ class SimEngine:
             for row in reader:
                 if len(row) < 2:
                     continue
-                t_s = float(row[0])
-                speed_ms = float(row[1]) / 3.6
+                first = row[0].strip()
+                second = row[1].strip()
+                if first.lower() == "time_s" and second.lower() == "speed_kmh":
+                    continue
+                t_s = float(first)
+                speed_ms = float(second) / 3.6
                 profile.append((t_s, speed_ms))
 
         if not profile:
@@ -107,6 +111,11 @@ class SimEngine:
 
     def _build_modules(self) -> None:
         vehicle = self.vehicle_cfg["vehicle"]
+        testcase_payload = self.testcase_cfg.get("payload", {})
+        effective_payload_kg = (
+            float(vehicle.get("payload_kg", 0.0))
+            + float(testcase_payload.get("cargo_kg", 0.0))
+        )
 
         driver_cls = get_module_class("driver", "pid_driver")
         long_cls = get_module_class("dynamics", "longitudinal")
@@ -128,7 +137,7 @@ class SimEngine:
         coolant_cls = get_module_class("thermal", "coolant")
 
         longitudinal_params = {
-            "mass_kg": vehicle["mass_kg"] + vehicle.get("payload_kg", 0.0),
+            "mass_kg": vehicle["mass_kg"] + effective_payload_kg,
             "frontal_area_m2": vehicle["frontal_area_m2"],
             "drag_coefficient": vehicle["drag_coefficient"],
             "wheel_radius_m": vehicle["wheel_radius_m"],

@@ -91,6 +91,7 @@ The active CSV route format is positional and expects:
 Notes:
 
 - `time_s` is elapsed time from cycle start
+- a literal header row `time_s,speed_kmh` is accepted
 - lines starting with `#` are ignored
 - extra columns are ignored by the active loader
 

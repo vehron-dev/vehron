@@ -1,4 +1,5 @@
 from vehron.loader import ConfigLoader
+from vehron.engine import SimEngine
 
 
 def test_loader_validates_and_converts(project_root):
@@ -103,3 +104,74 @@ aux_loads:
 
     assert vehicle["hvac"]["model"] == "external"
     assert vehicle["hvac"]["external_class_name"] == "PrivateHvacModel"
+
+
+def test_engine_accepts_headered_drive_cycle_csv(project_root, tmp_path):
+    cycle_path = tmp_path / "headered_cycle.csv"
+    cycle_path.write_text(
+        "time_s,speed_kmh\n0,0\n10,36\n20,0\n",
+        encoding="utf-8",
+    )
+
+    testcase_path = tmp_path / "headered_drive_cycle.yaml"
+    testcase_path.write_text(
+        f"""
+testcase:
+  name: "Headered drive cycle"
+  description: "Headered CSV should be accepted"
+
+environment:
+  ambient_temp_c: 25.0
+  wind_speed_ms: 0.0
+  wind_angle_deg: 0.0
+  solar_irradiance_wm2: 0.0
+
+route:
+  mode: drive_cycle
+  distance_km: 1.0
+  grade_pct: 0.0
+  target_speed_kmh: 0.0
+  drive_cycle_file: {cycle_path}
+
+payload:
+  passengers: 0
+  cargo_kg: 0.0
+
+simulation:
+  dt_s: 0.1
+  max_duration_s: 60.0
+  stop_on_soc_min: true
+""",
+        encoding="utf-8",
+    )
+
+    loader = ConfigLoader(project_root=project_root)
+    vehicle, testcase = loader.load(
+        project_root / "src/vehron/archetypes/bev_car_sedan.yaml",
+        testcase_path,
+    )
+
+    engine = SimEngine(vehicle, testcase, project_root=project_root)
+
+    assert engine._drive_cycle_profile is not None
+    assert engine._drive_cycle_profile[0] == (0.0, 0.0)
+    assert engine._drive_cycle_profile[1][0] == 10.0
+    assert engine._drive_cycle_profile[1][1] == 10.0
+
+
+def test_engine_applies_testcase_cargo_to_effective_mass(project_root):
+    loader = ConfigLoader(project_root=project_root)
+    vehicle, testcase = loader.load(
+        project_root / "src/vehron/archetypes/bev_car_sedan.yaml",
+        project_root / "src/vehron/testcases/flat_highway_100kmh.yaml",
+    )
+
+    engine = SimEngine(vehicle, testcase, project_root=project_root)
+
+    mass_kg = float(engine.modules["dynamics"].params["mass_kg"])
+    expected_mass_kg = (
+        float(vehicle["vehicle"]["mass_kg"])
+        + float(vehicle["vehicle"].get("payload_kg", 0.0))
+        + float(testcase["payload"].get("cargo_kg", 0.0))
+    )
+    assert mass_kg == expected_mass_kg

@@ -100,7 +100,13 @@ Its contents are:
 50,0
 ```
 
-The active loader expects:
+The active loader accepts either:
+
+- a real header row: `time_s,speed_kmh`
+- a commented first line such as `# time_s,speed_kmh`
+- or plain two-column numeric rows
+
+The two required columns are:
 
 - column 1: elapsed time in seconds
 - column 2: speed in km/h

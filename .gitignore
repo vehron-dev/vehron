@@ -24,6 +24,10 @@ CODEX.md
 # Local planning artifacts
 docs/VEHRON_JOSS_V1_Week_Plan.docx
 docs/VEHRON_Progress_Report.docx
+docs/VEHRON_Offline_Documentation.docx
+docs/VEHRON_Offline_Documentation.md
+docs/VEHRON_Offline_Documentation.pdf
+docs/build_offline_docx.py
 
 # Local paper build artifacts
 paper.pdf

@@ -88,15 +88,15 @@ platform.
 | Auxiliary and parasitic loads | YAML-configured `aux_loads` electrical parasitics | current model family is parameterized rather than plugin-based | broader parasitics framework |
 | Thermal modeling | battery, motor, coolant trend states | low-order coupled trends only | detailed thermal network calibration |
 | Outputs | case package, summary, timeseries, plots | current output schema still evolving | richer comparison/report workflows |
-| Public reuse story | CLI-driven BEV studies, custom YAMLs, custom drive-cycle CSVs, external battery/HVAC Python models | Python API use via core classes | larger stable plugin ecosystem |
+| Public reuse story | CLI-driven BEV studies, custom YAMLs, custom drive-cycle CSVs, external battery/HVAC Python models | direct use of internal core classes by advanced users, without stable public API guarantees | larger stable plugin ecosystem |
 
 See also:
 
-- [Public Interface](/home/sn/02_git/vehron/docs/public_interface.md)
-- [Getting Started](/home/sn/02_git/vehron/docs/getting_started.md)
-- [Validation and Limitations](/home/sn/02_git/vehron/docs/validation.md)
-- [Reference Benchmarks](/home/sn/02_git/vehron/docs/benchmarks.md)
-- [YAML Reference](/home/sn/02_git/vehron/docs/yaml_reference.md)
+- [Public Interface](docs/public_interface.md)
+- [Getting Started](docs/getting_started.md)
+- [Validation and Limitations](docs/validation.md)
+- [Reference Benchmarks](docs/benchmarks.md)
+- [YAML Reference](docs/yaml_reference.md)
 
 ## License
 
