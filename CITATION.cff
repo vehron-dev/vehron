@@ -1,9 +1,10 @@
 cff-version: 1.2.0
 title: VEHRON
-message: "If you use VEHRON in research, please cite the software and associated paper."
+message: "If you use VEHRON in research, please cite the archived software release for the version you used."
 type: software
 license: AGPL-3.0-only
 version: 0.1.0
+doi: 10.5281/zenodo.19660006
 authors:
   - family-names: Natarajan
     given-names: Subramanyam
@@ -16,18 +17,10 @@ abstract: >-
 keywords:
   - vehicle simulation
   - battery electric vehicle
-  - BEV
+  - EV
   - battery stress history
   - thermal modeling
   - drive cycle
+  - vehicle 1D modelling
 repository-code: "https://github.com/vehron-dev/vehron"
 license-url: "https://www.gnu.org/licenses/agpl-3.0.txt"
-preferred-citation:
-  type: article
-  title: "VEHRON: a modular forward-time vehicle simulation framework for BEV energy, thermal, and subsystem studies"
-  authors:
-    - family-names: Natarajan
-      given-names: Subramanyam
-  year: 2026
-  journal: Journal of Open Source Software
-  note: "Planned JOSS software paper metadata; update volume, issue, and DOI upon acceptance."
