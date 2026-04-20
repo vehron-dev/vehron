@@ -31,6 +31,10 @@ docs/build_offline_docx.py
 
 # Local paper build artifacts
 paper/
+manuscripts/
+private/papers/
+paper.md
+paper.bib
 paper.pdf
 paper_readable.tex
 paper_readable.pdf
