@@ -67,6 +67,7 @@ class SimEngine:
 
     def _build_modules(self) -> None:
         vehicle = self.vehicle_cfg["vehicle"]
+        driver = self.vehicle_cfg.get("driver", {})
         testcase_payload = self.testcase_cfg.get("payload", {})
         self.passenger_count = int(testcase_payload.get("passengers", 0))
         self.passenger_mass_kg = float(testcase_payload.get("passenger_mass_kg", 75.0))
@@ -108,7 +109,11 @@ class SimEngine:
         }
 
         self.modules = {
-            "driver": driver_cls({"kp": 0.9, "ki": 0.08, "kd": 0.02}),
+            "driver": driver_cls({
+                "kp": float(driver.get("kp", 0.9)),
+                "ki": float(driver.get("ki", 0.08)),
+                "kd": float(driver.get("kd", 0.02)),
+            }),
             "dynamics": long_cls(longitudinal_params),
             "reducer": reducer_cls({
                 "wheel_radius_m": vehicle["wheel_radius_m"],

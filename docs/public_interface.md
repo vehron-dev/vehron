@@ -46,6 +46,7 @@ The CLI:
 Vehicle YAML defines:
 
 - vehicle mass and geometry
+- driver model and driver gains
 - powertrain selection
 - battery model and pack parameters
 - motor model and motor parameters

@@ -27,6 +27,35 @@ The current BEV stack is composed from these model blocks:
 At runtime, these are orchestrated by `SimEngine` and connected through
 `SimState`.
 
+## Driver Tuning Boundary
+
+The active driver is a PID speed-tracking controller configured from vehicle
+YAML.
+
+For the packaged sedan archetype, the current default gains are:
+
+- `kp = 0.9`
+- `ki = 0.08`
+- `kd = 0.02`
+
+These values should be understood as an empirical engineering tune for the
+current low-order BEV path, not as a first-principles controller derivation.
+The practical tuning goal was to achieve stable speed tracking with limited
+overshoot across the packaged benchmark cases while keeping the controller
+simple and inspectable.
+
+The present repository does not contain a formal automated tuning workflow.
+An honest tuning procedure for this controller is therefore:
+
+1. start with `ki = 0` and `kd = 0`, then raise `kp` until speed tracking is responsive without persistent oscillation
+2. add a small `ki` to reduce residual tracking error on sustained cruise or grade
+3. add a small `kd` only as needed to soften overshoot and braking/throttle chatter
+4. recheck the tune on both highway-like and stop-start cycles because regen and pedal saturation change the closed-loop behavior
+
+Because throttle and brake are saturated after the PID command and the current
+driver does not implement explicit anti-windup logic, aggressive integral gains
+should be avoided.
+
 ## Key BEV Physics Included
 
 - aero drag via `drag_coefficient` and `frontal_area_m2`

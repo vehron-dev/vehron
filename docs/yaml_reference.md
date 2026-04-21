@@ -29,6 +29,28 @@ Core vehicle-level properties:
 - `transmission_efficiency`: mechanical reduction efficiency
 - `drivetrain_efficiency`: longitudinal drive force efficiency factor
 
+### `driver`
+
+Current active driver fields:
+
+- `model`: currently `pid`
+- `kp`: proportional gain for speed-tracking error
+- `ki`: integral gain for steady-state speed-tracking error
+- `kd`: derivative gain for damping and overshoot control
+
+Current default BEV sedan tune:
+
+- `kp: 0.9`
+- `ki: 0.08`
+- `kd: 0.02`
+
+Tuning note:
+
+- these gains are empirical defaults for the current low-order BEV path
+- they were tuned for acceptable target-speed tracking in packaged reference cases
+- they are not derived from a formal plant-identification or pole-placement workflow
+- if vehicle mass, reduction ratio, wheel radius, or route aggressiveness changes materially, retuning may be needed
+
 ### `battery`
 
 Common battery fields:
