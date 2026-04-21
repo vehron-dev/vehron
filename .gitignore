@@ -19,7 +19,9 @@ data/
 
 # Local editor and agent files
 .codex
-CODEX.md
+CODEX*
+CLAUDE*
+AGENTS*
 
 # Local planning artifacts
 docs/VEHRON_JOSS_V1_Week_Plan.docx
