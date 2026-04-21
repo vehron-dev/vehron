@@ -52,6 +52,7 @@ This includes channels such as:
 - SOC
 - battery voltage/current/power
 - traction, regen, HVAC, and auxiliary power
+- external charging request, charger mode, and charge state when present
 - key temperatures
 
 ### `plots/`

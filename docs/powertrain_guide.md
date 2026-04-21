@@ -65,6 +65,7 @@ should be avoided.
 - motor and inverter losses
 - regenerative braking
 - battery electrical response
+- selectable AC charging request model
 - simplified thermal trends
 - low-order cabin thermal load with solar, envelope, ventilation, and occupant gains
 
@@ -119,11 +120,38 @@ In-repo low-order cabin thermal model with:
 Private third-party HVAC model loaded at runtime through the HVAC slot
 interface.
 
+## Charging Model Status
+
+VEHRON now supports a first in-repo external charging controller for AC
+charging sessions.
+
+Current boundary:
+
+- charger selection is testcase-specific through `testcase.charging`
+- charger capability and limits live in `vehicle.charging`
+- the charger requests battery-side charging power
+- the battery model remains the single place that updates SOC, current, and voltage
+
+Current in-repo behavior:
+
+- AC charging availability window
+- AC charging efficiency
+- target-SOC termination
+- simple CP/CV-style transition using present battery voltage and a resistance-based estimate
+- legacy fixed-power charging fallback through `simulation.external_charging_*`
+
+What this is not yet:
+
+- DC fast charging
+- chemistry-aware taper maps
+- temperature-based derating maps
+- precise charger-side energy accounting in the main summary outputs
+
 ## What Is Not Yet the Main BEV Path
 
 - closed-loop power derating from thermal limits
 - high-fidelity tyre slip integration in the active runtime
-- advanced charging taper and charging-control logic
+- DC fast charging and richer charging taper behavior
 - degradation-aware cross-cycle battery evolution
 - production-grade calibration workflows
 

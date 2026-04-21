@@ -14,6 +14,11 @@ def test_registry_returns_ecm_battery_module_class():
     assert cls.__name__ == "Ecm2RcBatteryModel"
 
 
+def test_registry_returns_ac_charger_module_class():
+    cls = get_module_class("charging", "ac_basic")
+    assert cls.__name__ == "AcBasicChargingModel"
+
+
 def test_registry_unknown_module_raises():
     with pytest.raises(ModuleRegistrationError):
         get_module_class("battery", "does_not_exist")

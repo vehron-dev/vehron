@@ -157,6 +157,21 @@ hvac:
   cabin_setpoint_c: 22.0
 ```
 
+### `charging`
+
+Vehicle charging capability fields:
+
+- `ac_power_limit_kw`: onboard AC charging ceiling
+- `dc_power_limit_kw`: reserved for future DC fast charging support
+- `charge_efficiency_ac`
+- `charge_efficiency_dc`
+- `target_voltage_v`: optional CV threshold; if omitted VEHRON falls back to battery full-voltage metadata or a nominal derived default
+- `termination_current_a`
+- `max_charge_current_a`
+- `temp_min_charge_c`
+- `temp_max_charge_c`
+- `cv_enabled`
+
 ### `aux_loads`
 
 - `headlights_w`
@@ -199,6 +214,32 @@ Semantics:
 - `external_charging_power_kw`
 - `external_charging_start_s`
 - `external_charging_end_s`
+
+Legacy note:
+
+- the `external_charging_*` simulation fields are still supported as a fixed-power fallback
+- new charger selection should use the dedicated `charging` section below
+
+### `charging`
+
+Run-specific charger selection fields:
+
+- `enabled`: whether an external charger is available for this testcase
+- `mode`: currently `none` or `ac`
+- `start_s`
+- `end_s`
+- `target_soc`
+
+Example:
+
+```yaml
+charging:
+  enabled: true
+  mode: ac
+  start_s: 0.0
+  end_s: 1800.0
+  target_soc: 0.8
+```
 
 ## Boundary Conversions
 

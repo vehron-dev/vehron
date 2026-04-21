@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, field_validator
 
 
 class TestcaseSection(BaseModel):
@@ -40,6 +40,21 @@ class SimulationSection(BaseModel):
     external_charging_end_s: float = Field(ge=0, default=0.0)
 
 
+class ChargingSection(BaseModel):
+    enabled: bool = Field(default=False)
+    mode: str = Field(default="none")
+    start_s: float = Field(ge=0, default=0.0)
+    end_s: float = Field(ge=0, default=0.0)
+    target_soc: float | None = Field(default=None, ge=0, le=1)
+
+    @field_validator("mode")
+    @classmethod
+    def _mode_supported(cls, value: str) -> str:
+        if value not in {"none", "ac"}:
+            raise ValueError("testcase.charging.mode must be 'none' or 'ac'")
+        return value
+
+
 class OutputsSection(BaseModel):
     time_series: bool = Field(default=True)
     energy_audit: bool = Field(default=True)
@@ -53,4 +68,5 @@ class TestcaseConfig(BaseModel):
     route: RouteSection
     payload: PayloadSection = Field(default_factory=PayloadSection)
     simulation: SimulationSection = Field(default_factory=SimulationSection)
+    charging: ChargingSection = Field(default_factory=ChargingSection)
     outputs: OutputsSection = Field(default_factory=OutputsSection)

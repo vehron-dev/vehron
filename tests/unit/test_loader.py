@@ -123,6 +123,19 @@ def test_loader_exposes_driver_pid_config(project_root):
     assert vehicle["driver"]["kd"] == 0.02
 
 
+def test_loader_exposes_default_charging_capability_and_selection(project_root):
+    loader = ConfigLoader(project_root=project_root)
+    vehicle, testcase = loader.load(
+        project_root / "src/vehron/archetypes/bev_car_sedan.yaml",
+        project_root / "src/vehron/testcases/flat_highway_100kmh.yaml",
+    )
+
+    assert vehicle["charging"]["ac_power_limit_kw"] == 7.2
+    assert vehicle["charging"]["charge_efficiency_ac"] == 0.95
+    assert testcase["charging"]["enabled"] is False
+    assert testcase["charging"]["mode"] == "none"
+
+
 def test_engine_accepts_headered_drive_cycle_csv(project_root, tmp_path):
     cycle_path = tmp_path / "headered_cycle.csv"
     cycle_path.write_text(

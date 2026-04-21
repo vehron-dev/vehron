@@ -154,6 +154,21 @@ class SimState:
     p_thermal_mgmt_w: float = 0.0
     """Thermal management power (cooling pump, fans, heaters), W."""
 
+    p_external_charge_w: float = 0.0
+    """External battery-side charging power request, W. Positive = into battery."""
+
+    charger_input_power_w: float = 0.0
+    """Estimated charger input power on the wall/grid side, W."""
+
+    is_plugged_in: bool = False
+    """Whether the vehicle is presently connected to an external charger."""
+
+    charger_mode: str = "none"
+    """Selected charger mode for the current run, e.g. none or ac."""
+
+    charge_state: str = "IDLE"
+    """Charging controller state for logging and post-processing."""
+
     # ── Energy accumulators ────────────────────────────────────────────────────
     # Integrated over the run. Updated by the energy bookkeeper each timestep.
 
@@ -224,6 +239,11 @@ class SimState:
             "p_hvac_w": self.p_hvac_w,
             "p_aux_w": self.p_aux_w,
             "p_thermal_mgmt_w": self.p_thermal_mgmt_w,
+            "p_external_charge_w": self.p_external_charge_w,
+            "charger_input_power_w": self.charger_input_power_w,
+            "is_plugged_in": self.is_plugged_in,
+            "charger_mode": self.charger_mode,
+            "charge_state": self.charge_state,
             "e_drive_wh": self.e_drive_wh,
             "e_regen_wh": self.e_regen_wh,
             "e_hvac_wh": self.e_hvac_wh,
@@ -299,6 +319,11 @@ class ModuleOutputs:
     p_hvac_w: float | None = None
     p_aux_w: float | None = None
     p_thermal_mgmt_w: float | None = None
+    p_external_charge_w: float | None = None
+    charger_input_power_w: float | None = None
+    is_plugged_in: bool | None = None
+    charger_mode: str | None = None
+    charge_state: str | None = None
 
     # Energy accumulators
     e_drive_wh: float | None = None

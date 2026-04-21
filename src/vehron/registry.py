@@ -10,6 +10,7 @@ from pathlib import Path
 
 from vehron.exceptions import ModuleRegistrationError
 from vehron.modules.aux_loads.dc_loads import DcLoadsModel
+from vehron.modules.charging.ac_basic import AcBasicChargingModel
 from vehron.modules.driver.pid_driver import PidDriverModel
 from vehron.modules.dynamics.aero import AeroDragModel
 from vehron.modules.dynamics.grade import GradeForceModel
@@ -31,6 +32,7 @@ from vehron.modules.thermal.motor_thermal import MotorThermalModel
 
 MODULE_REGISTRY = {
     "driver:pid_driver": PidDriverModel,
+    "charging:ac_basic": AcBasicChargingModel,
     "dynamics:aero": AeroDragModel,
     "dynamics:grade": GradeForceModel,
     "dynamics:rolling_resistance": RollingResistanceModel,

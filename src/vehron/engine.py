@@ -52,6 +52,9 @@ class SimEngine:
         self.sim_state.t_batt_k = self.sim_state.t_ambient_k
         self.sim_state.t_motor_k = self.sim_state.t_ambient_k
         self.sim_state.t_coolant_k = self.sim_state.t_ambient_k
+        self.sim_state.v_batt_v = float(battery["nominal_voltage_v"])
+        self.sim_state.i_batt_a = 0.0
+        self.sim_state.p_batt_w = 0.0
 
         self.sim_state.target_v_ms = float(internal.get("target_speed_ms", 0.0))
         self.sim_state.grade_rad = float(internal.get("grade_rad", 0.0))
@@ -68,6 +71,8 @@ class SimEngine:
     def _build_modules(self) -> None:
         vehicle = self.vehicle_cfg["vehicle"]
         driver = self.vehicle_cfg.get("driver", {})
+        charging_cfg = self.vehicle_cfg.get("charging", {})
+        testcase_charging = self.testcase_cfg.get("charging", {})
         testcase_payload = self.testcase_cfg.get("payload", {})
         self.passenger_count = int(testcase_payload.get("passengers", 0))
         self.passenger_mass_kg = float(testcase_payload.get("passenger_mass_kg", 75.0))
@@ -131,10 +136,6 @@ class SimEngine:
                 "max_regen_power_w": self.vehicle_cfg["motor"]["peak_power_kw"] * 1000.0 * 0.45,
                 "regen_efficiency": 0.7,
             }),
-            "battery": battery_cls(self.vehicle_cfg["battery"]),
-            "battery_thermal": batt_thermal_cls({"tau_s": 600.0}),
-            "motor_thermal": motor_thermal_cls({"tau_s": 450.0}),
-            "coolant_loop": coolant_cls({"tau_s": 900.0}),
             "hvac": hvac_cls({
                 **self.vehicle_cfg["hvac"],
                 "passenger_count": self.passenger_count,
@@ -142,6 +143,33 @@ class SimEngine:
             }),
             "aux_loads": aux_cls(self.vehicle_cfg["aux_loads"]),
         }
+
+        charging_mode = str(testcase_charging.get("mode", "none"))
+        charging_enabled = bool(testcase_charging.get("enabled", False))
+        if charging_enabled and charging_mode == "ac":
+            charger_cls = get_module_class("charging", "ac_basic")
+            merged_charging_params = {
+                **charging_cfg,
+                **testcase_charging,
+                "nominal_voltage_v": self.vehicle_cfg["battery"]["nominal_voltage_v"],
+                "internal_resistance_ohm": self.vehicle_cfg["battery"].get("internal_resistance_ohm", 0.05),
+            }
+            if "target_soc" not in merged_charging_params or merged_charging_params["target_soc"] is None:
+                merged_charging_params["target_soc"] = min(
+                    float(self.vehicle_cfg["battery"].get("soc_max", 0.98)),
+                    0.8,
+                )
+            if merged_charging_params.get("target_voltage_v") is None:
+                merged_charging_params["target_voltage_v"] = self.vehicle_cfg["battery"].get(
+                    "ocv_full_v",
+                    float(self.vehicle_cfg["battery"]["nominal_voltage_v"]) * 1.05,
+                )
+            self.modules["charger"] = charger_cls(merged_charging_params)
+
+        self.modules["battery"] = battery_cls(self.vehicle_cfg["battery"])
+        self.modules["battery_thermal"] = batt_thermal_cls({"tau_s": 600.0})
+        self.modules["motor_thermal"] = motor_thermal_cls({"tau_s": 450.0})
+        self.modules["coolant_loop"] = coolant_cls({"tau_s": 900.0})
 
         for module in self.modules.values():
             module.validate_params()
@@ -173,7 +201,7 @@ class SimEngine:
             return True
         return False
 
-    def _external_charging_power_w(self, t_s: float) -> float:
+    def _legacy_external_charging_power_w(self, t_s: float) -> float:
         sim_cfg = self.testcase_cfg["simulation"]
         power_kw = float(sim_cfg.get("external_charging_power_kw", 0.0))
         start_s = float(sim_cfg.get("external_charging_start_s", 0.0))
@@ -203,9 +231,15 @@ class SimEngine:
 
         for step_idx in range(n_steps):
             self._update_target_speed()
-            p_external_charge_w = self._external_charging_power_w(self.sim_state.t)
-            self._battery_charge_sum_w += p_external_charge_w
-            self._battery_charge_samples += 1
+            if "charger" not in self.modules:
+                p_external_charge_w = self._legacy_external_charging_power_w(self.sim_state.t)
+                self.sim_state.p_external_charge_w = p_external_charge_w
+                self.sim_state.charger_input_power_w = p_external_charge_w
+                self.sim_state.is_plugged_in = p_external_charge_w > 0.0
+                self.sim_state.charger_mode = "legacy_constant_power" if p_external_charge_w > 0.0 else "none"
+                self.sim_state.charge_state = "LEGACY_CP" if p_external_charge_w > 0.0 else "IDLE"
+                self._battery_charge_sum_w += p_external_charge_w
+                self._battery_charge_samples += 1
 
             for _, module in active_modules:
                 module.accumulate(self.sim_state)
@@ -231,6 +265,9 @@ class SimEngine:
                         })
                     outputs = module.step(self.sim_state, inputs, effective_dt)
                     self._apply_outputs(self.sim_state, outputs)
+                    if name == "charger":
+                        self._battery_charge_sum_w += self.sim_state.p_external_charge_w
+                        self._battery_charge_samples += 1
                 # else: sim_state retains last output from this module
 
             self.sim_state.t = (step_idx + 1) * self.dt_s

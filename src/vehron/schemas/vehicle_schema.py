@@ -125,6 +125,21 @@ class HVACSection(BaseModel):
         return self
 
 
+class ChargingSection(BaseModel):
+    ac_power_limit_kw: float = Field(ge=0, default=7.2)
+    dc_power_limit_kw: float = Field(ge=0, default=80.0)
+    charge_efficiency_ac: float = Field(gt=0, le=1, default=0.95)
+    charge_efficiency_dc: float = Field(gt=0, le=1, default=0.95)
+    target_voltage_v: float | None = Field(default=None)
+    termination_current_a: float = Field(ge=0, default=5.0)
+    max_charge_current_a: float | None = Field(default=None)
+    temp_min_charge_c: float | None = Field(default=None)
+    temp_max_charge_c: float | None = Field(default=None)
+    cv_enabled: bool = Field(default=True)
+    dc_soc_taper_start: float = Field(ge=0, le=1, default=0.8)
+    dc_min_taper_fraction: float = Field(ge=0, le=1, default=0.15)
+
+
 class AuxLoadsSection(BaseModel):
     headlights_w: float = Field(ge=0, default=80.0)
     adas_w: float = Field(ge=0, default=150.0)
@@ -139,4 +154,5 @@ class VehicleConfig(BaseModel):
     motor: MotorSection
     tyre: TyreSection = Field(default_factory=TyreSection)
     hvac: HVACSection = Field(default_factory=HVACSection)
+    charging: ChargingSection = Field(default_factory=ChargingSection)
     aux_loads: AuxLoadsSection = Field(default_factory=AuxLoadsSection)
