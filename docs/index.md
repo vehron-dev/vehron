@@ -7,10 +7,7 @@ VEHRON. It is intended to be consumed by:
 
 - engineering contributors
 - validation and modeling teams
-- the website/docs team building the public documentation section
-
-The website team should render and reorganize this content as needed, but the
-technical meaning should originate here.
+- users who need technical details beyond the README
 
 ## Recommended Reading Order
 
@@ -24,7 +21,6 @@ technical meaning should originate here.
 - [HVAC Slot Interface](hvac_slot_interface.md)
 - [ECM 2RC Battery Model](models/battery_ecm_2rc.md)
 - [Cabin Thermal Model](models/cabin_thermal_model.md)
-- [Website Handoff](website_handoff.md)
 
 ## Current Documentation Scope
 
@@ -42,12 +38,3 @@ It should not be treated as:
 - marketing copy
 - a roadmap-only narrative
 - a separate wiki that can drift from implementation
-
-## Notes for the Website Team
-
-If you are building the website documentation section:
-
-- consume these markdown files directly
-- preserve code samples and units
-- preserve the distinction between implemented and planned features
-- route technical meaning changes back to engineering review
