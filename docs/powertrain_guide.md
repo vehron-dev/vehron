@@ -72,6 +72,30 @@ should be avoided.
 The cabin-load formulation follows the literature-standard lumped-parameter
 approach used for vehicle thermal models. See [Cabin Thermal Model](models/cabin_thermal_model.md).
 
+## Motor Model Options
+
+### `analytical`
+
+Envelope-based EV motor model with:
+
+- constant-torque region below base speed
+- constant-power torque falloff above base speed
+- explicit max-speed clamp
+- configurable regen torque and regen power ceilings
+- bounded scalar efficiency estimate
+
+Use this for:
+
+- baseline BEV studies
+- runs that need a sane torque-speed envelope without a map file
+- regression testing against packaged archetypes
+
+### `efficiency_map`
+
+The map-backed model reuses the same torque-speed envelope as `analytical` and
+then replaces the efficiency estimate with CSV-backed lookup where map data is
+available.
+
 ## Battery Model Options
 
 ### `rint`

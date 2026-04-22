@@ -111,6 +111,12 @@ battery:
 - `peak_torque_nm`
 - `max_speed_rpm`
 - `base_efficiency`
+- `base_speed_rpm`: optional; if omitted VEHRON derives the constant-torque to constant-power transition from `peak_power_kw / peak_torque_nm`
+- `max_regen_power_kw`: optional regen-side power ceiling; defaults to `peak_power_kw`
+- `max_regen_torque_nm`: optional regen-side torque ceiling; defaults to `peak_torque_nm`
+- `regen_efficiency`: optional regen-side electrical efficiency used for motor thermal bookkeeping
+- `min_efficiency`
+- `max_efficiency`
 
 ### `tyre`
 

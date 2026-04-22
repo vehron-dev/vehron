@@ -87,6 +87,12 @@ class MotorSection(BaseModel):
     peak_torque_nm: float = Field(gt=0)
     max_speed_rpm: float = Field(gt=0)
     base_efficiency: float = Field(gt=0, le=1, default=0.93)
+    base_speed_rpm: float | None = Field(default=None, gt=0)
+    max_regen_power_kw: float | None = Field(default=None, gt=0)
+    max_regen_torque_nm: float | None = Field(default=None, gt=0)
+    regen_efficiency: float | None = Field(default=None, gt=0, le=1)
+    min_efficiency: float = Field(gt=0, le=1, default=0.70)
+    max_efficiency: float = Field(gt=0, le=1, default=0.98)
 
 
 class TyreSection(BaseModel):
