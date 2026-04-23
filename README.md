@@ -121,16 +121,14 @@ See also:
 
 VEHRON is licensed under `AGPL-3.0-only`.
 
-This is an intentional copyleft choice.
-
-VEHRON is independent work built from personal engineering effort, time, and experimentation rather than institutional sponsorship. The license choice reflects that context as well as the project's technical goals.
-
-The aim is:
-
-- to keep VEHRON itself open
-- to discourage private SaaS capture without contribution back
-- to preserve a commons around the simulator as it grows
-- to keep long-term stewardship clear as the project evolves
+This licensing choice reflects the project's origin as independent research
+and engineering work developed without dedicated institutional sponsorship,
+and is intended to preserve an open commons around the simulator as it
+matures. VEHRON also provides external battery and HVAC model slots so that
+users can integrate specialized subsystem implementations into the same
+vehicle-level execution workflow. Users employing such integrations should
+evaluate licensing and deployment obligations for their own context with
+appropriate legal or compliance review.
 
 Contributor guidance:
 
