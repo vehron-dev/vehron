@@ -1,0 +1,107 @@
+# Reference vehicle configuration for indicative comparison against published data.
+# Source vehicle: Hyundai IONIQ 6 Long-Range RWD (18" wheels, brochure values).
+# Source URL:
+# https://dmassets.hyundai.com/is/content/hyundaiautoever/Hyundai_IONIQ-6_Brochure-EN_20251202_1280x720_40ppdf
+#
+# Public values taken from the brochure:
+# - battery capacity: 84.0 kWh
+# - WLTP energy consumption: 13.5 kWh/100 km
+# - WLTP range: 680 km
+# - drag coefficient: 0.21
+# - overall length: 4925 mm
+# - overall width: 1880 mm
+# - overall height: 1495 mm
+# - curb weight range: 1925-1987 kg
+# - peak motor power: 168 kW
+# - peak motor torque: 350 Nm
+#
+# Estimated values used for VEHRON input:
+# - mass_kg = 1956 (midpoint of published curb-weight range)
+# - frontal_area_m2 = 2.36 (estimated from published width and height with 0.84 shape factor)
+# - wheel_radius_m, reduction ratios, drivetrain efficiencies, battery voltage,
+#   internal resistance, tyre rolling resistance, HVAC parameters, and aux loads
+#   are engineering estimates for an indicative comparison only
+#
+# Raw simulation output for WLTP Class 3b run:
+# - simulated distance: 23.272 km
+# - net energy: 3818.64 Wh
+# - implied consumption: 16.41 kWh/100 km
+# - published WLTP consumption reference: 13.5 kWh/100 km
+# - difference vs published figure: +21.55%
+
+vehicle:
+  name: "Hyundai IONIQ 6 LR RWD reference"
+  archetype: car
+  powertrain: bev
+  mass_kg: 1956
+  payload_kg: 0
+  frontal_area_m2: 2.36
+  drag_coefficient: 0.21
+  wheel_radius_m: 0.352
+  primary_reduction_ratio: 3.45
+  secondary_reduction_ratio: 2.85
+  transmission_efficiency: 0.97
+  drivetrain_efficiency: 0.95
+
+driver:
+  model: pid
+  kp: 0.9
+  ki: 0.08
+  kd: 0.02
+
+battery:
+  model: rint
+  capacity_kwh: 84.0
+  nominal_voltage_v: 700
+  internal_resistance_ohm: 0.06
+  thermal_mass_kjk: 35.0
+  max_charge_rate_c: 2.0
+  max_discharge_rate_c: 5.0
+  soc_init: 0.98
+  soc_min: 0.05
+  soc_max: 0.98
+
+motor:
+  model: analytical
+  map_file: data/motor_maps/pmsm_160kw.csv
+  peak_power_kw: 168
+  peak_torque_nm: 350
+  max_speed_rpm: 15000
+  base_efficiency: 0.94
+
+tyre:
+  model: rolling_resistance
+  rolling_resistance_coeff: 0.008
+  tyre_size: "245/45R18"
+
+hvac:
+  model: cabin_load
+  rated_power_kw: 4.0
+  cabin_volume_m3: 2.9
+  cabin_heat_capacity_kjpk: 5.5
+  air_exchange_ach: 1.0
+  hvac_cop: 2.9
+  setpoint_c: 22.0
+
+road_load:
+  model: steady_state
+
+regen:
+  model: blended
+  max_regen_torque_nm: 180.0
+  front_bias: 0.0
+  rear_bias: 1.0
+
+controls:
+  traction_control: true
+  abs: true
+
+thermal:
+  battery_cooling_kw: 4.5
+  battery_heating_kw: 2.0
+
+metadata:
+  source: "Hyundai brochure reference configuration"
+  notes:
+    - "Reference vehicle configuration assembled from public brochure values and engineering estimates."
+    - "Used for indicative order-of-magnitude comparison only."

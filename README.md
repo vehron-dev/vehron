@@ -28,6 +28,9 @@ public surface.
 
 ## Install
 
+VEHRON is currently installed from a repository checkout. It is not currently
+published on PyPI.
+
 For users evaluating VEHRON from a repository checkout:
 
 ```bash
@@ -77,6 +80,20 @@ VEHRON should **not** currently be interpreted as:
 If you are evaluating VEHRON for reuse, treat it as a modular BEV simulation
 kernel with documented extension points, not as a finished broad vehicle
 platform.
+
+## Reference Configurations
+
+VEHRON uses YAML-defined reference vehicle configurations with fully stated
+parameters. This keeps simulation assumptions auditable and reproducible from
+the configuration file alone.
+
+When public specifications are available for a production vehicle, they can be
+used to assemble a reference configuration for an indicative
+order-of-magnitude comparison. An example is included at
+[bev_reference_ioniq6.yaml](/home/sn/02_git/vehron/src/vehron/archetypes/bev_reference_ioniq6.yaml),
+which assembles a Hyundai IONIQ 6 long-range rear-wheel-drive reference case
+from published brochure values plus clearly stated engineering estimates for
+the missing subsystem parameters.
 
 ## Capability Matrix
 
@@ -437,6 +454,18 @@ vehron run \
 
 To evaluate any vehicle on WLTP, keep the same testcase and swap `--vehicle`.
 
+### Run the Hyundai IONIQ 6 reference configuration
+
+```bash
+vehron run \
+  --vehicle src/vehron/archetypes/bev_reference_ioniq6.yaml \
+  --testcase src/vehron/testcases/wltp_class3b_standard.yaml
+```
+
+This reference configuration is intended for an indicative
+order-of-magnitude comparison against published WLTP figures, while keeping
+all simulation assumptions visible in YAML.
+
 - [docs/battery_slot_interface.md](/home/sn/02_git/vehron/docs/battery_slot_interface.md)
 
 ### Private battery model hook
@@ -629,6 +658,7 @@ VEHRON currently has:
 - A working BEV 4W simulation path
 - A modular architecture with explicit module contracts
 - Fixed multi-rate scheduler implementation
+- Auditable YAML-defined reference vehicle configurations
 - A hot-swappable battery slot for private third-party pack models
 - Case artifact generation workflow
 - Passing unit/integration baseline tests
