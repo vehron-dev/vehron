@@ -6,7 +6,11 @@ This page describes the default case package produced by VEHRON runs.
 
 ## Case Package Location
 
-VEHRON writes case outputs under:
+For the case-directory workflow, VEHRON writes case outputs under:
+
+- `<case_dir>/output/<case_name>/`
+
+For legacy explicit-path runs, VEHRON writes case outputs under:
 
 - `output/cases/<case_name>/`
 

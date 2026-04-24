@@ -53,6 +53,40 @@ Then sanity-check the CLI:
 vehron --help
 ```
 
+## Case Directory Workflow
+
+VEHRON now supports a case-directory workflow so that inputs, outputs, and
+case notes live together.
+
+Initialise the current directory as a case:
+
+```bash
+vehron init
+```
+
+Or create a new case directory:
+
+```bash
+vehron init hvac-design-v1
+```
+
+This writes:
+
+- `.vehron-case`
+- `README.md`
+- `vehicle.yaml`
+- `testcase.yaml`
+- `output/`
+
+Run the case with:
+
+```bash
+vehron run --case hvac-design-v1
+```
+
+When `--case` is used, VEHRON reads `vehicle.yaml` and `testcase.yaml` from
+that directory and writes each run under `<case_dir>/output/`.
+
 ## Current Scope
 
 VEHRON v1 should be understood as a **BEV-focused research software package**.
@@ -378,7 +412,11 @@ Charging and regen observability:
 
 ## 5. Case Packaging Convention
 
-Case runs should be saved under:
+Case-directory runs should be saved under:
+
+- `<case_dir>/output/<run_name>/`
+
+Legacy explicit-path runs still write under:
 
 - `output/cases/<case_name>/`
 

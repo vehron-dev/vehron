@@ -13,23 +13,47 @@ VEHRON v1 is primarily a CLI-driven, YAML-configured BEV simulation package.
 
 The supported public interfaces are:
 
+- the `vehron init` command
 - the `vehron run` command
+- the `vehron run --case <case_dir>` workflow
 - vehicle YAML files
 - testcase YAML files
 - drive-cycle CSV input using `time_s,speed_kmh`
-- case package outputs under `output/cases/...`
+- case package outputs under `<case_dir>/output/...` or `output/cases/...`
 - the external battery model slot
 - the external HVAC model slot
 
 ## CLI
 
-Current user-facing command:
+Current user-facing commands:
+
+```bash
+vehron init [case_dir_name]
+```
+
+```bash
+vehron run --case <case_dir>
+```
 
 ```bash
 vehron run --vehicle <vehicle.yaml> --testcase <testcase.yaml>
 ```
 
-Required inputs:
+`vehron init` creates a case directory containing:
+
+- `.vehron-case`
+- `README.md`
+- `vehicle.yaml`
+- `testcase.yaml`
+- `output/`
+
+`vehron run --case <case_dir>`:
+
+- reads `<case_dir>/vehicle.yaml`
+- reads `<case_dir>/testcase.yaml`
+- writes run outputs under `<case_dir>/output/<run_name>/`
+
+Legacy explicit-path form:
 
 - `--vehicle`: path to a vehicle YAML file
 - `--testcase`: path to a testcase YAML file
@@ -98,7 +122,11 @@ Notes:
 
 ## Output Contract
 
-The default case package is written under:
+For the case-directory workflow, the default case package is written under:
+
+- `<case_dir>/output/<case_name>/`
+
+For legacy explicit-path runs, the default case package is written under:
 
 - `output/cases/<case_name>/`
 

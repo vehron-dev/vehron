@@ -34,9 +34,38 @@ If you want to sanity-check the installed CLI, run:
 vehron --help
 ```
 
-## 2. Run The Baseline BEV Case
+## 2. Create A Case Directory
 
-If you are working from a repository checkout, run:
+Initialise the current directory as a VEHRON case:
+
+```bash
+vehron init
+```
+
+Or create a dedicated case directory:
+
+```bash
+vehron init veh-case-1
+```
+
+This writes:
+
+- `.vehron-case`
+- `README.md`
+- `vehicle.yaml`
+- `testcase.yaml`
+- `output/`
+
+## 3. Run The Baseline BEV Case
+
+From the project root, run the packaged baseline inside the new case:
+
+```bash
+vehron run --case veh-case-1
+```
+
+If you are working directly from explicit YAML paths instead, the legacy form
+still works:
 
 ```bash
 vehron run \
@@ -49,14 +78,14 @@ What this does:
 - loads the active BEV sedan archetype
 - runs a simple constant-speed highway testcase
 - prints run progress in the terminal
-- writes a case package under `output/cases/...`
+- writes a case package under the case directory when `--case` is used
 
-## 3. Inspect The Output
+## 4. Inspect The Output
 
-After the run, inspect the newest case directory under:
+For case-directory runs, inspect the newest run under:
 
 ```text
-output/cases/
+veh-case-1/output/
 ```
 
 A case package includes:
@@ -69,7 +98,19 @@ A case package includes:
 - `vehicle_resolved.yaml`
 - `testcase_resolved.yaml`
 
-## 4. Run A Standard Drive Cycle
+Legacy explicit-path runs continue to write under `output/cases/`.
+
+## 5. Run A Standard Drive Cycle
+
+```bash
+vehron init wltp-check
+vehron run --case wltp-check
+```
+
+To switch that case to the packaged WLTP-style testcase, edit
+`wltp-check/testcase.yaml` and replace it with
+`src/vehron/testcases/wltp_class3b_standard.yaml`, or use the legacy explicit
+path form:
 
 ```bash
 vehron run \
@@ -77,10 +118,7 @@ vehron run \
   --testcase src/vehron/testcases/wltp_class3b_standard.yaml
 ```
 
-This uses the built-in drive-cycle route mode instead of a simple parametric
-target speed.
-
-## 5. Create A Custom Drive-Cycle CSV
+## 6. Create A Custom Drive-Cycle CSV
 
 Use the runnable example file:
 
@@ -111,7 +149,7 @@ The two required columns are:
 - column 1: elapsed time in seconds
 - column 2: speed in km/h
 
-## 6. Point A Testcase To Your Custom CSV
+## 7. Point A Testcase To Your Custom CSV
 
 Use the runnable example testcase:
 
@@ -147,12 +185,20 @@ simulation:
 Then run:
 
 ```bash
+vehron init custom-cycle
+cp docs/examples/custom_drive_cycle_testcase.yaml custom-cycle/testcase.yaml
+vehron run --case custom-cycle
+```
+
+Or keep using the explicit-path form:
+
+```bash
 vehron run \
   --vehicle src/vehron/archetypes/bev_car_sedan.yaml \
   --testcase docs/examples/custom_drive_cycle_testcase.yaml
 ```
 
-## 7. Change Vehicle Parameters
+## 8. Change Vehicle Parameters
 
 To study a different BEV, copy the sedan archetype and edit fields such as:
 
@@ -165,7 +211,7 @@ To study a different BEV, copy the sedan archetype and edit fields such as:
 
 Then rerun with your modified vehicle YAML.
 
-## 8. Next Documents
+## 9. Next Documents
 
 Once the baseline workflow is working, continue with:
 
