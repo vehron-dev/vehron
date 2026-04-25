@@ -110,11 +110,9 @@ mindmapDiagram {
 ***** writeback payload returned by modules
 
 ** Active BEV 4W Simulation Path <<active>>
-*** `[ACTIVE]` Driver <<active>>
-**** `src/vehron/modules/driver/pid_driver.py`
-**** converts target speed error into throttle and brake
 *** `[ACTIVE]` Longitudinal dynamics <<active>>
 **** `src/vehron/modules/dynamics/longitudinal.py`
+**** applies prescribed route or cycle speed
 **** computes aero, rolling, grade, traction, braking
 **** updates speed, acceleration, distance
 **** produces wheel torque and wheel power
@@ -169,10 +167,8 @@ mindmapDiagram {
 *** Target speed path <<core>>
 **** testcase route -> `engine.py`
 **** `engine.py` -> `SimState.target_v_ms`
-**** `pid_driver.py` reads target speed and current speed
-**** outputs throttle and brake
 *** Motion path <<core>>
-**** `longitudinal.py` reads throttle, brake, and vehicle state
+**** `longitudinal.py` reads target speed and vehicle state
 **** outputs speed, acceleration, distance, wheel torque
 **** `fixed_ratio.py` maps wheel outputs to motor outputs
 **** `motor/*.py` computes motor efficiency and drive power
@@ -212,9 +208,6 @@ mindmapDiagram {
 **** custom exceptions
 
 ** Module Families <<core>>
-*** Driver <<active>>
-**** `[ACTIVE]` `src/vehron/modules/driver/pid_driver.py` <<active>>
-**** `[PLACEHOLDER or helper]` `src/vehron/modules/driver/pedal_map.py` <<placeholder>>
 *** Dynamics <<active>>
 **** `[ACTIVE]` `src/vehron/modules/dynamics/longitudinal.py` <<active>>
 **** `[PLACEHOLDER or helper]` `src/vehron/modules/dynamics/aero.py` <<placeholder>>

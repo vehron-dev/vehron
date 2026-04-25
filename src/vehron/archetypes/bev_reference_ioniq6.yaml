@@ -43,12 +43,6 @@ vehicle:
   transmission_efficiency: 0.97
   drivetrain_efficiency: 0.95
 
-driver:
-  model: pid
-  kp: 0.05
-  ki: 0.0
-  kd: 0.02
-
 battery:
   model: rint
   capacity_kwh: 84.0

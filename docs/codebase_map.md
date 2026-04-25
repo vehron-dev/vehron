@@ -34,8 +34,7 @@ flowchart LR
     Registry["registry.py<br/>kind:model -> class lookup"]:::core
     Engine["engine.py<br/>SimEngine orchestration + time loop"]:::entry
     State["state.py<br/>SimState + ModuleInputs + ModuleOutputs"]:::state
-    Driver["driver/pid_driver.py<br/>speed target -> throttle/brake"]:::active
-    Dyn["dynamics/longitudinal.py<br/>forces -> speed/distance/wheel torque"]:::active
+    Dyn["dynamics/longitudinal.py<br/>prescribed speed -> force/distance/wheel torque"]:::active
     Reducer["bev/reduction/fixed_ratio.py<br/>wheel side -> motor side"]:::active
     Motor["bev/motor/analytical.py<br/>or efficiency_map.py"]:::active
     Inverter["bev/inverter/simple.py<br/>AC/DC efficiency"]:::active
@@ -56,7 +55,6 @@ flowchart LR
     Registry --> Engine
     Engine <--> State
 
-    Engine --> Driver
     Engine --> Dyn
     Engine --> Reducer
     Engine --> Motor
@@ -69,7 +67,6 @@ flowchart LR
     Engine --> MotorTherm
     Engine --> Coolant
 
-    Driver -. reads/writes via .-> State
     Dyn -. reads/writes via .-> State
     Reducer -. reads/writes via .-> State
     Motor -. reads/writes via .-> State
@@ -98,7 +95,7 @@ flowchart LR
 - `registry.py` resolves model names like `motor:analytical` into Python classes.
 - `engine.py` is the conductor: it builds modules, executes them in order, handles multi-rate scheduling, and writes outputs back into shared state.
 - `state.py` is the central bus. Modules do not directly call each other. They communicate through `SimState`.
-- The active default path today is BEV-focused and includes driver, longitudinal dynamics, reducer, motor, inverter, regen, battery, HVAC, aux loads, and thermal trend models.
+- The active default path today is BEV-focused and includes prescribed-speed longitudinal dynamics, reducer, motor, inverter, regen, battery, HVAC, aux loads, and thermal trend models.
 
 ## 2. Repository Mind Map
 
@@ -127,7 +124,6 @@ flowchart TD
     Core --> Interfaces["interfaces/<br/>team integration hooks"]:::ext
     Core --> Post["post/<br/>reporting placeholders"]:::inactive
 
-    Modules --> DriverFam["driver/<br/>PID driver active<br/>pedal_map present"]:::active
     Modules --> DynamicsFam["dynamics/<br/>longitudinal active<br/>aero grade rolling_resistance helpers<br/>pacejka present"]:::active
     Modules --> BevFam["powertrain/bev/<br/>reduction motor inverter regen"]:::active
     Modules --> BatteryFam["energy_storage/battery/<br/>base rint ecm_2rc active<br/>pybamm_wrap present"]:::active
@@ -161,11 +157,10 @@ flowchart TD
 
 ## 3. What Connects To What
 
-### Control and motion path
+### Motion path
 
 - `target_v_ms` is set from testcase route logic in `engine.py`.
-- `driver/pid_driver.py` converts target speed error into `throttle` and `brake`.
-- `dynamics/longitudinal.py` converts those pedal commands into force, acceleration, speed, distance, and wheel torque.
+- `dynamics/longitudinal.py` applies the route or cycle speed directly and derives force, acceleration, speed, distance, throttle, brake, and wheel torque.
 - `bev/reduction/fixed_ratio.py` converts wheel-side torque and speed into motor-side torque and speed.
 - `bev/motor/*` converts motor operating point into motor efficiency and traction electrical power.
 - `bev/inverter/simple.py` turns motor-side electrical demand into DC-side demand.

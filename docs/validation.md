@@ -111,10 +111,9 @@ or placeholder artifacts elsewhere in the repository.
 - This is useful for comparative engineering studies and load-trend analysis,
   but not for detailed high-fidelity thermal claims.
 
-### Controls and Driver Scope
+### Motion and Controls Scope
 
-- The active control path is oriented around speed tracking and core BEV energy
-  flow.
+- The active public path is oriented around prescribed-speed BEV energy flow.
 - VEHRON is not yet a public framework for advanced supervisory control,
   route-planning, or autonomy research.
 
@@ -133,7 +132,7 @@ To strengthen publication and reuse credibility, the repo still needs:
 An accurate present-tense description is:
 
 > VEHRON is a modular BEV-focused research simulation framework for generating
-> reproducible vehicle and battery stress histories from configurable duty
+> deterministic vehicle and battery stress histories from configurable duty
 > cycles and operating conditions, with documented extension points for custom
 > battery and HVAC models.
 

@@ -30,20 +30,6 @@ class VehicleSection(BaseModel):
         return value
 
 
-class DriverSection(BaseModel):
-    model: str = Field(default="pid")
-    kp: float = Field(ge=0, default=0.9)
-    ki: float = Field(ge=0, default=0.08)
-    kd: float = Field(ge=0, default=0.02)
-
-    @field_validator("model")
-    @classmethod
-    def _driver_supported(cls, value: str) -> str:
-        if value != "pid":
-            raise ValueError("Only 'pid' driver is currently supported")
-        return value
-
-
 class BatterySection(BaseModel):
     model_config = ConfigDict(extra="allow")
 
@@ -155,7 +141,6 @@ class AuxLoadsSection(BaseModel):
 
 class VehicleConfig(BaseModel):
     vehicle: VehicleSection
-    driver: DriverSection = Field(default_factory=DriverSection)
     battery: BatterySection
     motor: MotorSection
     tyre: TyreSection = Field(default_factory=TyreSection)

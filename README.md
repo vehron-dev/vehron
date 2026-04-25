@@ -176,7 +176,7 @@ VEHRON is designed as a **component-based simulator**, not a monolithic model. Y
 
 ### Core design principles
 
-- **Modularity**: each subsystem (driver, dynamics, motor, battery, HVAC, etc.) is a separate module.
+- **Modularity**: each subsystem (dynamics, motor, battery, HVAC, etc.) is a separate module.
 - **Determinism**: same inputs produce same outputs.
 - **Boundary conversion discipline**: boundary units are converted to SI internally.
 - **Extensibility**: add or upgrade models without rewriting the core engine loop.
@@ -185,7 +185,7 @@ VEHRON is designed as a **component-based simulator**, not a monolithic model. Y
 ### Supported focus today
 
 - Primary: **BEV active path** (`powertrain: bev`)
-- Public emphasis: reproducible BEV duty-cycle simulation rather than broad powertrain coverage
+- Public emphasis: deterministic BEV duty-cycle simulation rather than broad powertrain coverage
 - Planned next: broader archetype and route support after the BEV baseline is better documented and validated
 
 ---
@@ -194,7 +194,7 @@ VEHRON is designed as a **component-based simulator**, not a monolithic model. Y
 
 The current pipeline supports a complete BEV simulation loop with these active model blocks:
 
-- Driver speed tracking (PID)
+- Prescribed-speed longitudinal motion from route or cycle input
 - Longitudinal dynamics (traction, brake, rolling resistance, aero drag, grade)
 - Fixed-ratio reduction drivetrain (primary + secondary reduction + efficiency)
 - Motor model (analytical and map-based variant)
@@ -259,7 +259,6 @@ Use:
 
 ### Current active module rates in BEV 4W run
 
-- Driver: divisor `1` -> `0.1 s`
 - Dynamics: divisor `1` -> `0.1 s`
 - Reducer: divisor `1` -> `0.1 s`
 - Motor: divisor `1` -> `0.1 s`
@@ -480,7 +479,7 @@ vehron run \
   --testcase src/vehron/testcases/flat_highway_100kmh.yaml
 ```
 
-### Run WLTP Class 3b cycle (openly available source)
+### Run the packaged open Class 3b-style benchmark trace
 
 ```bash
 vehron run \
@@ -488,7 +487,7 @@ vehron run \
   --testcase src/vehron/testcases/wltp_class3b_standard.yaml
 ```
 
-To evaluate any vehicle on WLTP, keep the same testcase and swap `--vehicle`.
+To evaluate any vehicle on the same packaged benchmark trace, keep the same testcase and swap `--vehicle`.
 
 ### Run the Hyundai IONIQ 6 reference configuration
 

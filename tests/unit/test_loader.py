@@ -50,12 +50,6 @@ vehicle:
   transmission_efficiency: 0.96
   drivetrain_efficiency: 0.94
 
-driver:
-  model: pid
-  kp: 0.9
-  ki: 0.08
-  kd: 0.02
-
 battery:
   model: rint
   capacity_kwh: 55.0
@@ -113,14 +107,11 @@ aux_loads:
     assert vehicle["hvac"]["external_class_name"] == "PrivateHvacModel"
 
 
-def test_loader_exposes_driver_pid_config(project_root):
+def test_loader_no_longer_requires_driver_section(project_root):
     loader = ConfigLoader(project_root=project_root)
     vehicle = loader.load_vehicle(project_root / "src/vehron/archetypes/bev_car_sedan.yaml")
 
-    assert vehicle["driver"]["model"] == "pid"
-    assert vehicle["driver"]["kp"] == 0.9
-    assert vehicle["driver"]["ki"] == 0.08
-    assert vehicle["driver"]["kd"] == 0.02
+    assert "driver" not in vehicle
 
 
 def test_loader_exposes_default_charging_capability_and_selection(project_root):

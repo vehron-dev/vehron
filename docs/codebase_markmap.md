@@ -61,11 +61,9 @@
 
 ## Active BEV 4W Simulation Path
 
-- `[ACTIVE]` Driver
-  - `src/vehron/modules/driver/pid_driver.py`
-  - Converts target speed error into throttle and brake
 - `[ACTIVE]` Longitudinal dynamics
   - `src/vehron/modules/dynamics/longitudinal.py`
+  - Applies prescribed route or cycle speed
   - Computes aero, rolling, grade, traction, braking
   - Updates speed, acceleration, distance
   - Produces wheel torque and wheel power
@@ -121,10 +119,8 @@
 - Target speed path
   - testcase route -> `engine.py`
   - `engine.py` -> `SimState.target_v_ms`
-  - `pid_driver.py` reads target speed and current speed
-  - outputs throttle and brake
 - Motion path
-  - `longitudinal.py` reads throttle, brake, vehicle state
+  - `longitudinal.py` reads target speed and vehicle state
   - outputs speed, acceleration, distance, wheel torque
   - `fixed_ratio.py` maps wheel outputs to motor outputs
   - `motor/*.py` computes motor efficiency and drive power
@@ -166,9 +162,6 @@
 
 ## Module Families
 
-- Driver
-  - `[ACTIVE]` `src/vehron/modules/driver/pid_driver.py`
-  - `[PLACEHOLDER or helper]` `src/vehron/modules/driver/pedal_map.py`
 - Dynamics
   - `[ACTIVE]` `src/vehron/modules/dynamics/longitudinal.py`
   - `[PLACEHOLDER or helper]` `src/vehron/modules/dynamics/aero.py`

@@ -107,7 +107,7 @@ vehron init wltp-check
 vehron run --case wltp-check
 ```
 
-To switch that case to the packaged WLTP-style testcase, edit
+To switch that case to the packaged open Class 3b-style benchmark testcase, edit
 `wltp-check/testcase.yaml` and replace it with
 `src/vehron/testcases/wltp_class3b_standard.yaml`, or use the legacy explicit
 path form:

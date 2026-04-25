@@ -7,11 +7,7 @@ from pathlib import Path
 from typing import Any, Callable
 
 from vehron.constants import DEFAULT_DT_S
-from vehron.registry import (
-    get_battery_module_class,
-    get_hvac_module_class,
-    get_module_class,
-)
+from vehron.registry import get_battery_module_class, get_hvac_module_class, get_module_class
 from vehron.routes import drive_cycle_target_speed, load_drive_cycle_profile
 from vehron.state import ModuleInputs, ModuleOutputs, SimState
 
@@ -67,10 +63,11 @@ class SimEngine:
         self._drive_cycle_profile: list[tuple[float, float]] | None = None
         if route.get("mode") == "drive_cycle":
             self._drive_cycle_profile = load_drive_cycle_profile(self.project_root, route.get("drive_cycle_file"))
+            self.sim_state.target_v_ms = float(self._drive_cycle_profile[0][1])
+        self.sim_state.v_ms = self.sim_state.target_v_ms
 
     def _build_modules(self) -> None:
         vehicle = self.vehicle_cfg["vehicle"]
-        driver = self.vehicle_cfg.get("driver", {})
         charging_cfg = self.vehicle_cfg.get("charging", {})
         testcase_charging = self.testcase_cfg.get("charging", {})
         testcase_payload = self.testcase_cfg.get("payload", {})
@@ -82,7 +79,6 @@ class SimEngine:
             + float(testcase_payload.get("cargo_kg", 0.0))
         )
 
-        driver_cls = get_module_class("driver", "pid_driver")
         long_cls = get_module_class("dynamics", "longitudinal")
         reducer_cls = get_module_class("reducer", "fixed_ratio")
         motor_cls = get_module_class("motor", self.vehicle_cfg["motor"]["model"])
@@ -125,11 +121,6 @@ class SimEngine:
         }
 
         self.modules = {
-            "driver": driver_cls({
-                "kp": float(driver.get("kp", 0.9)),
-                "ki": float(driver.get("ki", 0.08)),
-                "kd": float(driver.get("kd", 0.02)),
-            }),
             "dynamics": long_cls(longitudinal_params),
             "reducer": reducer_cls({
                 "wheel_radius_m": vehicle["wheel_radius_m"],
@@ -212,7 +203,7 @@ class SimEngine:
             return True
         return False
 
-    def _legacy_external_charging_power_w(self, t_s: float) -> float:
+    def _external_charging_power_w(self, t_s: float) -> float:
         sim_cfg = self.testcase_cfg["simulation"]
         power_kw = float(sim_cfg.get("external_charging_power_kw", 0.0))
         start_s = float(sim_cfg.get("external_charging_start_s", 0.0))
@@ -243,12 +234,12 @@ class SimEngine:
         for step_idx in range(n_steps):
             self._update_target_speed()
             if "charger" not in self.modules:
-                p_external_charge_w = self._legacy_external_charging_power_w(self.sim_state.t)
+                p_external_charge_w = self._external_charging_power_w(self.sim_state.t)
                 self.sim_state.p_external_charge_w = p_external_charge_w
                 self.sim_state.charger_input_power_w = p_external_charge_w
                 self.sim_state.is_plugged_in = p_external_charge_w > 0.0
-                self.sim_state.charger_mode = "legacy_constant_power" if p_external_charge_w > 0.0 else "none"
-                self.sim_state.charge_state = "LEGACY_CP" if p_external_charge_w > 0.0 else "IDLE"
+                self.sim_state.charger_mode = "constant_power" if p_external_charge_w > 0.0 else "none"
+                self.sim_state.charge_state = "CP" if p_external_charge_w > 0.0 else "IDLE"
                 self._battery_charge_sum_w += p_external_charge_w
                 self._battery_charge_samples += 1
 

@@ -1,4 +1,4 @@
-"""Longitudinal vehicle dynamics for EV simulation."""
+"""Longitudinal vehicle dynamics for prescribed-speed EV simulation."""
 
 from __future__ import annotations
 
@@ -32,26 +32,24 @@ class LongitudinalDynamicsModel(BaseModule):
         drive_eta = float(self.params.get("drivetrain_efficiency", 0.95))
         wind_speed_ms = float(self.params.get("wind_speed_ms", 0.0))
 
-        throttle = self._clamp(sim_state.throttle, 0.0, 1.0, "throttle")
-        brake = self._clamp(sim_state.brake, 0.0, 1.0, "brake")
-
-        rel_speed_ms = max(sim_state.v_ms - wind_speed_ms, 0.0)
-        aero_force_n = 0.5 * AIR_DENSITY_KGM3 * cd * area_m2 * rel_speed_ms * rel_speed_ms
-        rolling_force_n = mass_kg * GRAVITY_MS2 * c_rr * math.cos(sim_state.grade_rad) * (1.0 + 0.01 * sim_state.v_ms)
-        grade_force_n = mass_kg * GRAVITY_MS2 * math.sin(sim_state.grade_rad)
-
-        traction_force_n = throttle * max_drive_force_n * drive_eta
-        brake_force_n = brake * max_brake_force_n
-
-        net_force_n = traction_force_n - brake_force_n - aero_force_n - rolling_force_n - grade_force_n
-        a_ms2 = net_force_n / mass_kg
-
         v_prev_ms = sim_state.v_ms
-        v_ms = max(v_prev_ms + a_ms2 * dt, 0.0)
+        v_ms = max(sim_state.target_v_ms, 0.0)
+        a_ms2 = (v_ms - v_prev_ms) / dt if dt > 0 else 0.0
         v_avg_ms = 0.5 * (v_prev_ms + v_ms)
+
+        rel_speed_ms = max(v_avg_ms - wind_speed_ms, 0.0)
+        aero_force_n = 0.5 * AIR_DENSITY_KGM3 * cd * area_m2 * rel_speed_ms * rel_speed_ms
+        rolling_force_n = mass_kg * GRAVITY_MS2 * c_rr * math.cos(sim_state.grade_rad) * (1.0 + 0.01 * v_avg_ms)
+        grade_force_n = mass_kg * GRAVITY_MS2 * math.sin(sim_state.grade_rad)
+        net_force_n = mass_kg * a_ms2
+        required_wheel_force_n = net_force_n + aero_force_n + rolling_force_n + grade_force_n
+        traction_force_n = max(required_wheel_force_n, 0.0)
+        brake_force_n = max(-required_wheel_force_n, 0.0)
+        throttle = min(max(traction_force_n / max(max_drive_force_n * drive_eta, 1e-9), 0.0), 1.0)
+        brake = min(max(brake_force_n / max(max_brake_force_n, 1e-9), 0.0), 1.0)
         distance_m = sim_state.distance_m + v_avg_ms * dt
 
-        wheel_torque_nm = (traction_force_n - brake_force_n) * wheel_radius_m
+        wheel_torque_nm = required_wheel_force_n * wheel_radius_m
         wheel_power_w = wheel_torque_nm * (v_avg_ms / wheel_radius_m) if wheel_radius_m > 0 else 0.0
 
         self._state = {
@@ -66,6 +64,8 @@ class LongitudinalDynamicsModel(BaseModule):
             v_ms=v_ms,
             a_ms2=a_ms2,
             distance_m=distance_m,
+            throttle=throttle,
+            brake=brake,
             wheel_torque_nm=wheel_torque_nm,
             wheel_power_w=wheel_power_w,
         )

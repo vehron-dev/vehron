@@ -48,7 +48,7 @@ class SimState:
     Convert from percent at YAML boundary: grade_rad = arctan(grade_pct / 100).
     """
 
-    # ── Driver demand ──────────────────────────────────────────────────────────
+    # ── Motion demand ──────────────────────────────────────────────────────────
     throttle: float = 0.0
     """Normalised throttle pedal position, 0.0 to 1.0."""
 
@@ -212,6 +212,8 @@ class SimState:
             "grade_rad": self.grade_rad,
             "throttle": self.throttle,
             "brake": self.brake,
+            "target_v_ms": self.target_v_ms,
+            "target_v_kmh": self.target_v_ms * 3.6,
             "soc": self.soc,
             "v_batt_v": self.v_batt_v,
             "i_batt_a": self.i_batt_a,
@@ -277,7 +279,7 @@ class ModuleOutputs:
     a_ms2: float | None = None
     distance_m: float | None = None
 
-    # Driver
+    # Motion demand
     throttle: float | None = None
     brake: float | None = None
 

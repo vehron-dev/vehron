@@ -2,7 +2,7 @@ from vehron.modules.dynamics.longitudinal import LongitudinalDynamicsModel
 from vehron.state import ModuleInputs, SimState
 
 
-def test_longitudinal_accelerates_with_throttle():
+def test_longitudinal_follows_prescribed_speed_and_derives_motion_demand():
     module = LongitudinalDynamicsModel(
         {
             "mass_kg": 1500,
@@ -17,8 +17,10 @@ def test_longitudinal_accelerates_with_throttle():
     module.validate_params()
     module.initialize(0.1)
 
-    state = SimState(v_ms=0.0, throttle=0.5, brake=0.0, grade_rad=0.0)
+    state = SimState(v_ms=0.0, target_v_ms=10.0, grade_rad=0.0)
     out = module.step(state, ModuleInputs(), 0.1)
 
-    assert out.v_ms is not None and out.v_ms > 0
+    assert out.v_ms is not None and out.v_ms == 10.0
     assert out.a_ms2 is not None and out.a_ms2 > 0
+    assert out.throttle is not None and out.throttle > 0
+    assert out.brake is not None and out.brake == 0.0

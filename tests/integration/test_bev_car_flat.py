@@ -28,35 +28,18 @@ def test_bev_flat_highway_reaches_and_holds_target_speed(project_root):
     result = engine.run()
 
     target_speed_kmh = 100.0
-    settle_band_kmh = 2.0
-    settle_time_s = None
     max_speed_kmh = max(float(row["v_kmh"]) for row in result.time_series)
-
-    for i, row in enumerate(result.time_series):
-        if all(
-            abs(float(sample["v_kmh"]) - target_speed_kmh) <= settle_band_kmh
-            for sample in result.time_series[i:]
-        ):
-            settle_time_s = float(row["t"])
-            break
-
     assert max_speed_kmh <= 100.1
-    assert settle_time_s is not None
-    assert settle_time_s <= 6.0
+    assert all(abs(float(row["v_kmh"]) - target_speed_kmh) <= 1e-9 for row in result.time_series)
 
-
-def test_engine_uses_driver_pid_gains_from_vehicle_yaml(project_root):
+def test_engine_uses_prescribed_speed_without_driver_module(project_root):
     loader = ConfigLoader(project_root=project_root)
     vehicle_cfg, testcase_cfg = loader.load(
         project_root / "src/vehron/archetypes/bev_car_sedan.yaml",
         project_root / "src/vehron/testcases/flat_highway_100kmh.yaml",
     )
-    vehicle_cfg["driver"]["kp"] = 1.25
-    vehicle_cfg["driver"]["ki"] = 0.11
-    vehicle_cfg["driver"]["kd"] = 0.04
 
     engine = SimEngine(vehicle_cfg, testcase_cfg, project_root=project_root)
 
-    assert engine.modules["driver"].params["kp"] == 1.25
-    assert engine.modules["driver"].params["ki"] == 0.11
-    assert engine.modules["driver"].params["kd"] == 0.04
+    assert "driver" not in engine.modules
+    assert float(testcase_cfg["_internal"]["target_speed_ms"]) > 0.0

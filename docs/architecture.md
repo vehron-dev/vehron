@@ -15,7 +15,7 @@ The most important architectural principle is separation of concerns:
 - `SimState` is the shared state bus seen by all modules.
 - Each module owns one domain behavior and returns only the outputs it computes.
 - Configuration enters through validated YAML, not ad hoc runtime code.
-- Route loading and drive-cycle target generation live in `vehron.routes`, not inside the timestep loop itself.
+- Route loading and drive-cycle speed generation live in `vehron.routes`, not inside the timestep loop itself.
 
 ## Active BEV Flow
 
@@ -32,7 +32,7 @@ The current active simulation path is:
 
 The active BEV modules include:
 
-- Driver speed tracking
+- Prescribed-speed longitudinal motion
 - Longitudinal vehicle dynamics
 - Fixed-ratio reduction drivetrain
 - Motor model
@@ -81,7 +81,7 @@ VEHRON uses a fixed-step master clock and per-module execution divisors.
 - Between executions, the last module outputs remain active.
 
 This allows slower domains such as battery electrical updates or thermal trends
-to run less often than fast control and vehicle-dynamics loops.
+to run less often than fast vehicle-dynamics loops.
 
 The engine also supports accumulation for slower modules:
 
