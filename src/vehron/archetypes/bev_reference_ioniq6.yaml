@@ -23,11 +23,11 @@
 #   are engineering estimates for an indicative comparison only
 #
 # Raw simulation output for WLTP Class 3b run:
-# - simulated distance: 23.272 km
-# - net energy: 3818.64 Wh
-# - implied consumption: 16.41 kWh/100 km
+# - simulated distance: 22.493 km
+# - net energy: 3658.47 Wh
+# - implied consumption: 16.27 kWh/100 km
 # - published WLTP consumption reference: 13.5 kWh/100 km
-# - difference vs published figure: +21.55%
+# - difference vs published figure: +20.52%
 
 vehicle:
   name: "Hyundai IONIQ 6 LR RWD reference"
@@ -45,8 +45,8 @@ vehicle:
 
 driver:
   model: pid
-  kp: 0.9
-  ki: 0.08
+  kp: 0.05
+  ki: 0.0
   kd: 0.02
 
 battery:

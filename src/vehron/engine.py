@@ -101,14 +101,25 @@ class SimEngine:
         motor_thermal_cls = get_module_class("thermal", "motor")
         coolant_cls = get_module_class("thermal", "coolant")
 
+        total_reduction = (
+            float(vehicle.get("primary_reduction_ratio", 1.0))
+            * float(vehicle.get("secondary_reduction_ratio", 1.0))
+        )
+        transmission_efficiency = float(vehicle.get("transmission_efficiency", 0.97))
+        wheel_radius_m = float(vehicle["wheel_radius_m"])
+        peak_motor_torque_nm = float(self.vehicle_cfg["motor"]["peak_torque_nm"])
+        max_drive_force_n = (
+            peak_motor_torque_nm * total_reduction * transmission_efficiency / wheel_radius_m
+        )
+
         longitudinal_params = {
             "mass_kg": vehicle["mass_kg"] + effective_payload_kg,
             "frontal_area_m2": vehicle["frontal_area_m2"],
             "drag_coefficient": vehicle["drag_coefficient"],
             "wheel_radius_m": vehicle["wheel_radius_m"],
             "rolling_resistance_coeff": self.vehicle_cfg["tyre"]["rolling_resistance_coeff"],
-            "max_drive_force_n": self.vehicle_cfg["motor"]["peak_torque_nm"] / vehicle["wheel_radius_m"],
-            "max_brake_force_n": self.vehicle_cfg["motor"]["peak_torque_nm"] * 1.8 / vehicle["wheel_radius_m"],
+            "max_drive_force_n": max_drive_force_n,
+            "max_brake_force_n": max_drive_force_n * 1.8,
             "drivetrain_efficiency": vehicle.get("drivetrain_efficiency", 0.95),
             "wind_speed_ms": self.testcase_cfg["environment"].get("wind_speed_ms", 0.0),
         }
@@ -124,7 +135,7 @@ class SimEngine:
                 "wheel_radius_m": vehicle["wheel_radius_m"],
                 "primary_reduction_ratio": vehicle.get("primary_reduction_ratio", 1.0),
                 "secondary_reduction_ratio": vehicle.get("secondary_reduction_ratio", 1.0),
-                "transmission_efficiency": vehicle.get("transmission_efficiency", 0.97),
+                "transmission_efficiency": transmission_efficiency,
             }),
             "motor": motor_cls({
                 **self.vehicle_cfg["motor"],

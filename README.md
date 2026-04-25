@@ -1,6 +1,6 @@
 # VEHRON
 
-[![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.19660006.svg)](https://doi.org/10.5281/zenodo.19660006)
+[![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.19661665.svg)](https://doi.org/10.5281/zenodo.19661665)
 
 VEHRON stands for **VEHicle Research and Optimisation Network**.
 

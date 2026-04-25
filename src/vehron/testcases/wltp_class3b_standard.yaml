@@ -20,7 +20,7 @@ payload:
   cargo_kg: 0.0
 
 simulation:
-  dt_s: 1.0
+  dt_s: 0.1
   max_duration_s: 1900
   stop_on_soc_min: true
   external_charging_power_kw: 0.0
