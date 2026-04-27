@@ -3,7 +3,7 @@ title: VEHRON
 message: "If you use VEHRON in research, please cite the archived software release for the version you used."
 type: software
 license: AGPL-3.0-only
-version: 0.2.1
+version: 0.2.2
 doi: 10.5281/zenodo.19661665
 date-released: 2026-04-24
 authors:
