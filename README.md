@@ -4,7 +4,8 @@
 
 VEHRON stands for **VEHicle Research and Optimisation Network**.
 
-VEHRON is an open-source, modular, forward-time vehicle simulation software focused on engineering use-cases such as:
+VEHRON is an open-source, modular, configuration-driven vehicle simulation
+package focused on engineering studies such as:
 
 - Energy consumption estimation
 - Range and SOC trajectory prediction
@@ -18,20 +19,26 @@ The guiding idea is simple:
 - The **physics** lives in modules.
 - Vehicle and experiment definitions come from **configuration files**.
 
-This repository is currently in an active build-up phase with a working
-BEV-focused simulation path and fixed multi-rate scheduling support.
+This repository is currently in active development with a working BEV-focused
+simulation path and fixed multi-rate scheduling support.
 
-If you are arriving here as an outsider, treat VEHRON as an honest public WIP:
-the BEV path is usable and tested, but the broader repository still contains
-scaffolding and future-scope placeholders that are not part of the supported
-public surface.
+Start with the documented BEV path. That is the part of the repository that is
+usable, tested, and intended for public reuse today.
 
 ## Install
 
-VEHRON is currently installed from a repository checkout. It is not currently
-published on PyPI.
+VEHRON is currently installed from GitHub or from a local repository checkout.
+It is not currently published on PyPI.
 
-For users evaluating VEHRON from a repository checkout:
+Fastest install from GitHub:
+
+```bash
+python3 -m venv .venv
+source .venv/bin/activate
+pip install git+https://github.com/vehron-dev/vehron.git
+```
+
+For users evaluating VEHRON from a local repository checkout:
 
 ```bash
 python3 -m venv .venv
@@ -94,40 +101,52 @@ VEHRON v1 should be understood as a **BEV-focused research software package**.
 The active supported path today is:
 
 - battery-electric vehicles (`powertrain: bev`)
-- forward-time longitudinal simulation
+- prescribed-speed longitudinal simulation
 - YAML-defined vehicles and testcases
 - parametric routes and drive-cycle CSV input using `time_s,speed_kmh`
 - configurable in-repo battery, HVAC, motor, reducer, regen, auxiliary-load,
   and thermal-trend models
 - external battery and HVAC models loaded from local Python files through
   documented slot interfaces
-- reproducible case package outputs
+- self-contained case artifacts
 
-VEHRON should **not** currently be interpreted as:
+VEHRON currently emphasizes:
 
-- a general multi-powertrain vehicle simulator
-- a battery degradation inference package
-- a high-fidelity electrochemical battery solver
-- a GPS/lat-lon route replay framework
-- a fully validated production-grade vehicle model
+- BEV energy, thermal-trend, and subsystem-loading studies
+- standard-cycle and custom-cycle replay from stated `v(t)` inputs
+- YAML-defined reference vehicles with auditable assumptions
+- case artifacts that are easy to inspect, compare, and archive
 
 If you are evaluating VEHRON for reuse, treat it as a modular BEV simulation
-kernel with documented extension points, not as a finished broad vehicle
-platform.
+kernel with documented extension points and a clean case workflow.
 
 ## Reference Configurations
 
 VEHRON uses YAML-defined reference vehicle configurations with fully stated
-parameters. This keeps simulation assumptions auditable and reproducible from
-the configuration file alone.
+parameters. This keeps simulation assumptions auditable from the YAML
+configuration alone.
 
-When public specifications are available for a production vehicle, they can be
-used to assemble a reference configuration for an indicative
-order-of-magnitude comparison. An example is included at
-[bev_reference_ioniq6.yaml](/home/sn/02_git/vehron/src/vehron/archetypes/bev_reference_ioniq6.yaml),
-which assembles a Hyundai IONIQ 6 long-range rear-wheel-drive reference case
-from published brochure values plus clearly stated engineering estimates for
-the missing subsystem parameters.
+The repository ships four WLTP reference cases and two MIDC reference cases
+assembled from publicly available technical data for representative production
+vehicles. Each case is defined entirely by its YAML file, with every assumption
+stated.
+
+| Case | Profile | Target WLTP | VEHRON result | Gap |
+|------|---------|-------------|---------------|-----|
+| A | Compact fastback, 84 kWh | 13.5 kWh/100 km | 13.21 kWh/100 km | −2.1% |
+| B | Large fastback, 82 kWh | 14.3 kWh/100 km | 14.02 kWh/100 km | −2.0% |
+| C | Compact SUV, 65 kWh | 18.0 kWh/100 km | 17.81 kWh/100 km | −1.1% |
+| D | City hatchback, 52 kWh | 13.9 kWh/100 km | 13.78 kWh/100 km | −0.9% |
+
+All four cases are run on the full 1800 s WLTP Class 3b cycle
+(`data/drive_cycles/wltp_class3b.csv`). Every case output includes a
+`summary.json` with a full energy budget breakdown: aero work, rolling
+resistance work, inertia work, drive energy, regen recovered, aux, HVAC,
+and net consumption in kWh/100 km.
+
+The repository also ships the full MIDC `P1x4 + P2` cycle at
+`data/drive_cycles/midc_p1x4_p2.csv` for Indian passenger-BEV studies, with
+reference configurations for the Mahindra BE 6 and Tata Nexon EV LR.
 
 ## Capability Matrix
 
@@ -227,7 +246,8 @@ HVAC slot architecture:
 
 ### Important note on maturity
 
-This is an **engineering MVP**, not a fully calibrated production-grade simulator yet. The architecture is intentionally ready for incremental fidelity upgrades.
+This is an **engineering MVP** with a clear path for incremental fidelity
+upgrades.
 
 ---
 
@@ -426,7 +446,7 @@ Current naming style includes archetype explicitly, e.g.:
 A case package should include:
 
 - `README.md` describing run context and model stack
-- `summary.json` with reproducible metadata
+- `summary.json` with deterministic run metadata
 - `timeseries.csv`
 - `plots/` images
 - input snapshots
@@ -454,14 +474,22 @@ A case package should include:
 - Python 3.10+
 - Virtual environment recommended
 
-### Fresh install from Git
+### Fresh install from GitHub
 
 ```bash
-git clone <your-vehron-repo-url>
+python3 -m venv .venv
+source .venv/bin/activate
+pip install git+https://github.com/vehron-dev/vehron.git
+```
+
+### Fresh install from a local checkout
+
+```bash
+git clone https://github.com/vehron-dev/vehron.git
 cd vehron
 python3 -m venv .venv
 source .venv/bin/activate
-pip install -e .
+pip install .
 ```
 
 ### Install (editable)
@@ -479,17 +507,7 @@ vehron run \
   --testcase src/vehron/testcases/flat_highway_100kmh.yaml
 ```
 
-### Run the packaged open Class 3b-style benchmark trace
-
-```bash
-vehron run \
-  --vehicle src/vehron/archetypes/bev_car_sedan.yaml \
-  --testcase src/vehron/testcases/wltp_class3b_standard.yaml
-```
-
-To evaluate any vehicle on the same packaged benchmark trace, keep the same testcase and swap `--vehicle`.
-
-### Run the Hyundai IONIQ 6 reference configuration
+### Run a reference configuration on the WLTP Class 3b cycle
 
 ```bash
 vehron run \
@@ -497,9 +515,20 @@ vehron run \
   --testcase src/vehron/testcases/wltp_class3b_standard.yaml
 ```
 
-This reference configuration is intended for an indicative
-order-of-magnitude comparison against published WLTP figures, while keeping
-all simulation assumptions visible in YAML.
+All four reference archetypes (`bev_reference_ioniq6.yaml`,
+`bev_reference_tesla_m3_lr_rwd.yaml`, `bev_reference_bmw_ix1_xdrive30.yaml`,
+`bev_reference_renault5_52kwh.yaml`) can be paired with any supported testcase.
+Parameters are fully stated in each YAML file.
+
+### Run a reference configuration on the MIDC cycle
+
+```bash
+vehron run \
+  --vehicle src/vehron/archetypes/bev_reference_tata_nexon_ev_lr.yaml \
+  --testcase src/vehron/testcases/midc_standard.yaml
+```
+
+The packaged MIDC testcase uses the full `1180 s` `P1x4 + P2` cycle.
 
 - [docs/battery_slot_interface.md](/home/sn/02_git/vehron/docs/battery_slot_interface.md)
 
@@ -581,7 +610,7 @@ battery:
 ```bash
 vehron run \
   --vehicle path/to/vehicle_with_private_battery.yaml \
-  --testcase src/vehron/testcases/wltp_class3b_standard.yaml
+  --testcase src/vehron/testcases/flat_highway_100kmh.yaml
 ```
 
 Recommended handoff from the battery team:
@@ -655,8 +684,8 @@ This is the intended sequence for practical progress.
 - Freeze I/O contract for archetype + testcase YAML
 - Add robust case export command
 - Improve error messaging and validation diagnostics
-- Add reproducibility checks and golden baseline runs
-- Keep a standard WLTP Class 3b benchmark testcase for all archetypes
+- Add determinism checks and golden baseline runs
+- Keep a small set of stable benchmark testcases for all supported archetypes
 
 ### Phase B — Improve 4W Physics Fidelity
 

@@ -12,9 +12,10 @@ authors:
     affiliation: Independent Researcher
     email: sn@chmod.in
 abstract: >-
-  VEHRON is a modular, BEV-focused forward-time vehicle simulation framework
-  for reproducible energy, thermal-trend, and battery stress-history studies
-  under configurable duty cycles and operating conditions.
+  VEHRON is a modular, BEV-focused prescribed-speed vehicle simulation
+  framework for deterministic energy, thermal-trend, and battery
+  stress-history studies under configurable duty cycles and operating
+  conditions, with packaged WLTP Class 3b and MIDC benchmark workflows.
 keywords:
   - vehicle simulation
   - battery electric vehicle
